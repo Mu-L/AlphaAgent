@@ -248,8 +248,14 @@ func send_messages():
 			current_title_chat = OpenAIChat.new()
 			current_chat_stream.secret_key = supplier.api_key
 			current_title_chat.secret_key = supplier.api_key
+		elif supplier.provider == "anthropic":
+			current_chat_stream = AnthropicChatStream.new()
+			current_title_chat = AnthropicChat.new()
+			current_chat_stream.secret_key = supplier.api_key
+			current_title_chat.secret_key = supplier.api_key
 		else:
 			printerr("不支持的供应商：", supplier.to_dict())
+			return
 
 		# 设置属性
 		current_chat_stream.api_base = supplier.base_url
