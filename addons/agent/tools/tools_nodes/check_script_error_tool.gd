@@ -127,11 +127,14 @@ func _run_static_parse_check(path: String) -> Dictionary:
 			"phase": "static",
 			"result_text": "静态检查失败：无法读取脚本内容。"
 		}
-
-	var script := GDScript.new()
-	script.source_code = source_code
+	var script:GDScript=ResourceLoader.load(path,"GDScript",ResourceLoader.CACHE_MODE_IGNORE_DEEP)
+	if script==null:
+		return {
+			"ok": false,
+			"phase": "static",
+			"result_text": "静态检查失败：无法装载脚本。"
+		}
 	var reload_error := script.reload()
-
 	return {
 		"ok": reload_error == OK,
 		"phase": "static",
