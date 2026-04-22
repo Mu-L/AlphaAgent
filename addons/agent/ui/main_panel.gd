@@ -73,6 +73,9 @@ var current_random_message_id: String = ""
 var current_chat_stream = null
 var current_title_chat = null
 var auto_scroll_enabled: bool = true
+var _title_generate_retry_count: int = 0
+const MAX_TITLE_GENERATE_RETRY: int = 3
+const MAX_TITLE_LENGTH: int = 20
 const AUTO_SCROLL_BOTTOM_TOLERANCE := 10.0
 
 func _ready() -> void:
@@ -465,19 +468,8 @@ func on_agent_finish(finish_reason: String, total_tokens: float):
 		current_history_item = AgentHistoryAndTitle.HistoryItem.new()
 		current_id = AlphaUtils.generate_random_string(16)
 		current_time = Time.get_datetime_string_from_system()
-		var title_messages: Array[Dictionary] = [
-			{
-				"role": "system",
-			"content": """\
-你是一个标题生成专家，你需要根据给你的AI交互的对话内容，生成一个内容总结出的标题，要求不能有符号和emoji，标题应简短易读，清晰明确。
-			"""
-			},
-			{
-				"role": "user",
-				"content": JSON.stringify(messages)
-			}
-		]
-		current_title_chat.post_message(title_messages)
+		_title_generate_retry_count = 0
+		current_title_chat.post_message(_build_title_messages())
 
 	#current_history_item.mode = input_container.get_input_mode()
 	if current_history_item:
@@ -489,14 +481,52 @@ func on_agent_finish(finish_reason: String, total_tokens: float):
 		history_and_title.update_history(current_id, current_history_item)
 
 func on_title_generate_finish(message: String, _think_msg: String):
-	current_title = message
+	# 验证标题长度，超过20字则打回重新生成
+	if message.length() > MAX_TITLE_LENGTH and _title_generate_retry_count < MAX_TITLE_GENERATE_RETRY:
+		_title_generate_retry_count += 1
+		#print("标题过长，重新生成: ", message)
+		current_title_chat.post_message(_build_title_messages())
+		return
+
+	# 如果超过最大重试次数或标题长度合规，使用标题或回退到用户输入
+	if _title_generate_retry_count >= MAX_TITLE_GENERATE_RETRY or message.length() <= MAX_TITLE_LENGTH:
+		current_title = message if message.length() <= MAX_TITLE_LENGTH else _get_fallback_title()
+	else:
+		current_title = message
+
 	#print("标题是 ", current_title)
+	_title_generate_retry_count = 0
 	first_chat = false
 	if current_history_item:
 		current_history_item.title = current_title
 	history_and_title.update_history(current_id, current_history_item)
 
 	current_title_chat.queue_free()
+
+func _build_title_messages() -> Array[Dictionary]:
+	return [
+		{
+			"role": "system",
+			"content": """\
+你是一个标题生成专家，你需要根据给你的AI交互的对话内容，生成一个内容总结出的标题，要求不能有符号和emoji，标题应简短易读，清晰明确，标题不能超过20个字。
+			"""
+		},
+		{
+			"role": "user",
+			"content": JSON.stringify(messages)
+		}
+	]
+
+func _get_fallback_title() -> String:
+	# 获取用户的第一条输入作为备用标题
+	for msg in messages:
+		if msg.get("role") == "user":
+			var content = msg.get("content", "")
+			# 截取前20个字
+			if content.length() > MAX_TITLE_LENGTH:
+				return content.substr(0, MAX_TITLE_LENGTH) + "..."
+			return content
+	return "新对话"
 
 func show_edited_file_container():
 	edited_files_container.generate_edited_file_list(AgentTempFileManager.get_instance().temp_file_array)

@@ -63,7 +63,12 @@ func refresh_list():
 	add_history_nodes()
 
 func set_title(title: String):
-	chat_title.text = title
+	# 替换换行符为空格，避免多行显示
+	var clean_title = title.replace("\n", " ").replace("\r", " ")
+	# 截断过长的标题
+	if clean_title.length() > 20:
+		clean_title = clean_title.substr(0, 20) + "..."
+	chat_title.text = clean_title
 
 func on_click_history_expand_button():
 	var window_pos = get_tree().root.position

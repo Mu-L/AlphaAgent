@@ -274,9 +274,8 @@ func _process_chunk(data: Dictionary):
 				var text_part: String = detail["text"]
 				if not text_part.is_empty():
 					think.emit(text_part)
-
-	# 兼容 reasoning_content（其他 OpenAI 兼容提供商格式）
-	if delta.has("reasoning_content") and delta["reasoning_content"] != null:
+	elif delta.has("reasoning_content") and delta["reasoning_content"] != null:
+		# 兼容 reasoning_content（其他 OpenAI 兼容提供商格式）
 		think.emit(delta["reasoning_content"])
 
 	if delta.has("content") and delta["content"] != null:

@@ -4,6 +4,7 @@ extends MarginContainer
 
 @onready var content_container: VBoxContainer = %ContentContainer
 @onready var think_container: VBoxContainer = %ThinkContainer
+@onready var think_content_panel: PanelContainer = %ThinkContentPanel
 @onready var think_content: RichTextLabel = %ThinkContent
 @onready var message_container: VBoxContainer = %MessageContainer
 @onready var message_content: RichTextLabel = %MessageContent
@@ -62,7 +63,7 @@ func _ready() -> void:
 	var auto_expand_think = AlphaAgentPlugin.global_setting.auto_expand_think
 	expand_button.button_pressed = auto_expand_think
 	set_expand_icon_flip(auto_expand_think)
-	think_content.visible = auto_expand_think
+	think_content_panel.visible = auto_expand_think
 
 func _process(delta: float) -> void:
 	if thinking:
@@ -77,7 +78,8 @@ func update_think_content(text: String, start_timer: bool = true):
 
 	thinking = start_timer
 	think_container.show()
-	think_content.text = text
+	# 去除首尾空白和换行，避免RichTextLabel渲染出过大高度
+	think_content.text = text.strip_edges()
 	if not thinking:
 		thinking_label.text = "思考了"
 
@@ -86,7 +88,8 @@ func update_message_content(text: String):
 	thinking = false
 	if show_think:
 		thinking_label.text = "思考了"
-	message_content.text = text
+	# 去除首尾空白和换行，避免RichTextLabel渲染出过大高度
+	message_content.text = text.strip_edges()
 	if message_content.text.trim_prefix(" ") != "":
 		message_container.show()
 		message_content.show()
@@ -100,7 +103,7 @@ func update_user_message_content(text: String):
 func _on_expand_button_toggled(toggled_on: bool) -> void:
 	#expand_button.text = " ▲ " if toggled_on else " ▼ "
 	set_expand_icon_flip(toggled_on)
-	think_content.visible = toggled_on
+	think_content_panel.visible = toggled_on
 
 func set_expand_icon_flip(val: bool):
 	expand_icon.flip_v = val
@@ -147,7 +150,7 @@ func update_error_message(error_content: String, detail: String):
 	thinking = false
 	use_tool_container.hide()
 	wait_using_tool.hide()
-	think_content.hide()
+	think_content_panel.hide()
 	message_container.hide()
 	user_message_container.hide()
 
