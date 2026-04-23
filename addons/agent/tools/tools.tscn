@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3 uid="uid://cq2jo5hlpns6j"]
+[gd_scene load_steps=31 format=3 uid="uid://cq2jo5hlpns6j"]
 
 [ext_resource type="Script" uid="uid://brrn1lmlftop0" path="res://addons/agent/tools/tools.gd" id="1_rxf3o"]
 [ext_resource type="Script" uid="uid://bw4aphbgnkejd" path="res://addons/agent/tools/tools_nodes/update_plan_list.gd" id="2_dfgn2"]
@@ -28,6 +28,8 @@
 [ext_resource type="Script" uid="uid://dbp0on28785my" path="res://addons/agent/tools/tools_nodes/write_file_tool.gd" id="23_vdjg2"]
 [ext_resource type="Script" uid="uid://bo7wlnxhg6myh" path="res://addons/agent/tools/tools_nodes/resource_inspector_tool.gd" id="24_obe2q"]
 [ext_resource type="Script" uid="uid://b3ndnwhlxchof" path="res://addons/agent/tools/tools_nodes/read_script_outline_tool.gd" id="25_w7l3t"]
+[ext_resource type="Script" uid="uid://3es0xnxxlxme" path="res://addons/agent/tools/tools_nodes/get_input_mappings_tool.gd" id="26_cxgkr"]
+[ext_resource type="Script" uid="uid://cagjqx1gp6n2w" path="res://addons/agent/tools/tools_nodes/input_mapping_actions_tool.gd" id="27_8h5tc"]
 
 [node name="Tools" type="Node"]
 script = ExtResource("1_rxf3o")
@@ -72,6 +74,9 @@ metadata/_custom_type_script = "uid://b1o5rj2m2ad50"
 script = ExtResource("11_g1dts")
 metadata/_custom_type_script = "uid://cblt20x0p1gbm"
 
+[node name="GetInputMappingsTool" type="Node" parent="."]
+script = ExtResource("26_cxgkr")
+
 [node name="GetProjectFileListTool" type="Node" parent="."]
 script = ExtResource("12_dqv32")
 metadata/_custom_type_script = "uid://w6od3ri5yutk"
@@ -87,6 +92,9 @@ metadata/_custom_type_script = "uid://b5o7ls70ps0sl"
 [node name="GlobalSearchTool" type="Node" parent="."]
 script = ExtResource("15_dqlvb")
 metadata/_custom_type_script = "uid://bn7s84xdq2dv4"
+
+[node name="InputMappingActionsTool" type="Node" parent="."]
+script = ExtResource("27_8h5tc")
 
 [node name="ListSceneNodesTool" type="Node" parent="."]
 script = ExtResource("15_jbvan")
