@@ -1,12 +1,9 @@
-[gd_resource type="Resource" script_class="Skill" load_steps=2 format=3 uid="uid://deut0l7qgy68r"]
+---
+name: godot-gdscript-patterns
+description: Master Godot 4 GDScript patterns including signals, scenes, state machines, and optimization. Use when building Godot games, implementing game systems, or learning GDScript best practices.
+---
 
-[ext_resource type="Script" uid="uid://dtnyq1hwqc1rn" path="res://addons/agent/skills/skill.gd" id="1_xfxqg"]
-
-[resource]
-script = ExtResource("1_xfxqg")
-skill_name = "godot-gdscript-patterns"
-skill_description = "Master Godot 4 GDScript patterns including signals, scenes, state machines, and optimization. Use when building Godot games, implementing game systems, or learning GDScript best practices."
-skill_content = "# Godot GDScript Patterns
+# Godot GDScript Patterns
 
 Production patterns for Godot 4.x game development with GDScript, covering architecture, signals, scenes, and optimization.
 
@@ -45,7 +42,7 @@ signal died
 @export var speed: float = 200.0
 @export var max_health: int = 100
 @export_range(0, 1) var damage_reduction: float = 0.0
-@export_group(\"Combat\")
+@export_group("Combat")
 @export var attack_damage: int = 10
 @export var attack_cooldown: float = 0.5
 
@@ -62,7 +59,7 @@ func _ready() -> void:
     _health = max_health
 
 func _physics_process(delta: float) -> void:
-    var direction := Input.get_vector(\"left\", \"right\", \"up\", \"down\")
+    var direction := Input.get_vector("left", "right", "up", "down")
     velocity = direction * speed
     move_and_slide()
 
@@ -119,7 +116,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func transition_to(state_name: StringName, msg: Dictionary = {}) -> void:
     if not states.has(state_name):
-        push_error(\"State '%s' not found\" % state_name)
+        push_error("State '%s' not found" % state_name)
         return
 
     var previous_state := current_state
@@ -164,19 +161,19 @@ extends State
 @export var player: Player
 
 func enter(_msg: Dictionary = {}) -> void:
-    player.animation.play(\"idle\")
+    player.animation.play("idle")
 
 func physics_update(_delta: float) -> void:
-    var direction := Input.get_vector(\"left\", \"right\", \"up\", \"down\")
+    var direction := Input.get_vector("left", "right", "up", "down")
 
     if direction != Vector2.ZERO:
-        state_machine.transition_to(\"Move\")
+        state_machine.transition_to("Move")
 
 func handle_input(event: InputEvent) -> void:
-    if event.is_action_pressed(\"attack\"):
-        state_machine.transition_to(\"Attack\")
-    elif event.is_action_pressed(\"jump\"):
-        state_machine.transition_to(\"Jump\")
+    if event.is_action_pressed("attack"):
+        state_machine.transition_to("Attack")
+    elif event.is_action_pressed("jump"):
+        state_machine.transition_to("Jump")
 ```
 
 ### Pattern 2: Autoload Singletons
@@ -205,7 +202,7 @@ func _ready() -> void:
     _load_high_score()
 
 func _input(event: InputEvent) -> void:
-    if event.is_action_pressed(\"pause\") and state == GameState.PLAYING:
+    if event.is_action_pressed("pause") and state == GameState.PLAYING:
         toggle_pause()
 
 func start_game() -> void:
@@ -238,12 +235,12 @@ func add_score(points: int) -> void:
     score += points
 
 func _load_high_score() -> void:
-    if FileAccess.file_exists(\"user://high_score.save\"):
-        var file := FileAccess.open(\"user://high_score.save\", FileAccess.READ)
+    if FileAccess.file_exists("user://high_score.save"):
+        var file := FileAccess.open("user://high_score.save", FileAccess.READ)
         high_score = file.get_32()
 
 func _save_high_score() -> void:
-    var file := FileAccess.open(\"user://high_score.save\", FileAccess.WRITE)
+    var file := FileAccess.open("user://high_score.save", FileAccess.WRITE)
     file.store_32(high_score)
 ```
 
@@ -311,12 +308,12 @@ func get_current_health() -> float:
 func take_damage(amount: float) -> float:
     var actual_damage := maxf(amount - defense, 1.0)
     _current_health = maxf(_current_health - actual_damage, 0.0)
-    stat_changed.emit(\"health\", _current_health)
+    stat_changed.emit("health", _current_health)
     return actual_damage
 
 func heal(amount: float) -> void:
     _current_health = minf(_current_health + amount, max_health)
-    stat_changed.emit(\"health\", _current_health)
+    stat_changed.emit("health", _current_health)
 
 func duplicate_for_runtime() -> CharacterStats:
     var copy := duplicate() as CharacterStats
@@ -341,10 +338,10 @@ func _ready() -> void:
 
 func attack() -> void:
     if weapon:
-        print(\"Attacking with %s for %d damage\" % [weapon.name, weapon.damage])
+        print("Attacking with %s for %d damage" % [weapon.name, weapon.damage])
 
 func _on_stat_changed(stat_name: StringName, value: float) -> void:
-    if stat_name == \"health\" and value <= 0:
+    if stat_name == "health" and value <= 0:
         die()
 ```
 
@@ -377,7 +374,7 @@ func _create_instance() -> Node:
     _available.append(instance)
 
     # Connect return signal if exists
-    if instance.has_signal(\"returned_to_pool\"):
+    if instance.has_signal("returned_to_pool"):
         instance.returned_to_pool.connect(_return_to_pool.bind(instance))
 
     return instance
@@ -390,7 +387,7 @@ func get_instance() -> Node:
             instance = _create_instance()
             _available.erase(instance)
         else:
-            push_warning(\"Pool exhausted and cannot grow\")
+            push_warning("Pool exhausted and cannot grow")
             return null
     else:
         instance = _available.pop_back()
@@ -399,7 +396,7 @@ func get_instance() -> Node:
     instance.visible = true
     _in_use.append(instance)
 
-    if instance.has_method(\"on_spawn\"):
+    if instance.has_method("on_spawn"):
         instance.on_spawn()
 
     return instance
@@ -410,7 +407,7 @@ func _return_to_pool(instance: Node) -> void:
 
     _in_use.erase(instance)
 
-    if instance.has_method(\"on_despawn\"):
+    if instance.has_method("on_despawn"):
         instance.on_despawn()
 
     instance.process_mode = Node.PROCESS_MODE_DISABLED
@@ -454,7 +451,7 @@ func _physics_process(delta: float) -> void:
         returned_to_pool.emit()
 
 func _on_body_entered(body: Node2D) -> void:
-    if body.has_method(\"take_damage\"):
+    if body.has_method("take_damage"):
         body.take_damage(10)
     returned_to_pool.emit()
 ```
@@ -623,7 +620,7 @@ func _load_scene(path: String) -> void:
                 _swap_scene(scene.instantiate())
                 return
             _:
-                push_error(\"Failed to load scene: %s\" % path)
+                push_error("Failed to load scene: %s" % path)
                 return
 
 func _swap_scene(new_scene: Node) -> void:
@@ -644,7 +641,7 @@ func _play_transition_out() -> void:
     transition_started.emit()
     _transition.visible = true
 
-    if _transition.has_method(\"transition_out\"):
+    if _transition.has_method("transition_out"):
         await _transition.transition_out()
     else:
         await get_tree().create_timer(0.3).timeout
@@ -654,7 +651,7 @@ func _play_transition_in() -> void:
         transition_finished.emit()
         return
 
-    if _transition.has_method(\"transition_in\"):
+    if _transition.has_method("transition_in"):
         await _transition.transition_in()
     else:
         await get_tree().create_timer(0.3).timeout
@@ -669,8 +666,8 @@ func _play_transition_in() -> void:
 # save_manager.gd (Autoload)
 extends Node
 
-const SAVE_PATH := \"user://savegame.save\"
-const ENCRYPTION_KEY := \"your_secret_key_here\"
+const SAVE_PATH := "user://savegame.save"
+const ENCRYPTION_KEY := "your_secret_key_here"
 
 signal save_completed
 signal load_completed
@@ -684,7 +681,7 @@ func save_game(data: Dictionary) -> void:
     )
 
     if file == null:
-        save_error.emit(\"Could not open save file\")
+        save_error.emit("Could not open save file")
         return
 
     var json := JSON.stringify(data)
@@ -704,7 +701,7 @@ func load_game() -> Dictionary:
     )
 
     if file == null:
-        save_error.emit(\"Could not open save file\")
+        save_error.emit("Could not open save file")
         return {}
 
     var json := file.get_as_text()
@@ -712,7 +709,7 @@ func load_game() -> Dictionary:
 
     var parsed := JSON.parse_string(json)
     if parsed == null:
-        save_error.emit(\"Could not parse save data\")
+        save_error.emit("Could not parse save data")
         return {}
 
     load_completed.emit()
@@ -739,12 +736,12 @@ func _ready() -> void:
 
 func get_save_data() -> Dictionary:
     var parent := get_parent()
-    var data := {\"id\": save_id}
+    var data := {"id": save_id}
 
     if parent is Node2D:
-        data[\"position\"] = {\"x\": parent.position.x, \"y\": parent.position.y}
+        data["position"] = {"x": parent.position.x, "y": parent.position.y}
 
-    if parent.has_method(\"get_custom_save_data\"):
+    if parent.has_method("get_custom_save_data"):
         data.merge(parent.get_custom_save_data())
 
     return data
@@ -752,10 +749,10 @@ func get_save_data() -> Dictionary:
 func load_save_data(data: Dictionary) -> void:
     var parent := get_parent()
 
-    if data.has(\"position\") and parent is Node2D:
+    if data.has("position") and parent is Node2D:
         parent.position = Vector2(data.position.x, data.position.y)
 
-    if parent.has_method(\"load_custom_save_data\"):
+    if parent.has_method("load_custom_save_data"):
         parent.load_custom_save_data(data)
 ```
 
@@ -806,5 +803,3 @@ func _on_off_screen() -> void:
 - [Godot Documentation](https://docs.godotengine.org/en/stable/)
 - [GDQuest Tutorials](https://www.gdquest.com/)
 - [Godot Recipes](https://kidscancode.org/godot_recipes/)
-"
-metadata/_custom_type_script = "uid://dtnyq1hwqc1rn"
