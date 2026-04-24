@@ -35,6 +35,9 @@ enum MenuListType {
 
 var menu_list_type: MenuListType = MenuListType.None
 
+var _cached_file_list: Array = []         # 文件列表缓存
+var _cached_file_list_valid: bool = false # 缓存是否有效
+
 var command_list = [
 	{
 		"command": "/memory",
@@ -317,6 +320,7 @@ func clear_reference_list():
 func on_click_clear_button():
 	user_input.text = ""
 	clear_reference_list()
+	_cached_file_list_valid = false
 
 ## 发送信息
 func on_click_send_message():
@@ -411,6 +415,11 @@ func on_user_input_text_changed():
 
 	# 检测 @ 触发文件列表
 	if "@" in text:
+		# 缓存文件列表，避免每次按键都遍历文件系统
+		if not _cached_file_list_valid:
+			_cached_file_list = get_project_file_list()
+			_cached_file_list_valid = true
+
 		input_menu_list.show()
 		input_menu_list.clear()
 		menu_list = get_filtered_file_list(text)
@@ -456,31 +465,50 @@ func on_user_input_text_changed():
 		input_menu_list.clear()
 
 func on_input_menu_list_item_selected(index: int):
-	match menu_list_type:
-		MenuListType.Command:
-			var item = menu_list[index]
-			if item is Dictionary:
-				user_input.text = item.command + " "
-			else:
-				user_input.text = "/" + str(item) + " "
-			input_menu_list.hide()
-			input_menu_list.clear()
-			user_input.grab_focus()
-			user_input.set_caret_column(user_input.text.length())
+		var text = user_input.text
+		match menu_list_type:
+			MenuListType.Command:
+				var item = menu_list[index]
+				var cmd_text = item.command + " " if item is Dictionary else "/" + str(item) + " "
+				var slash_pos = text.find("/")
+				if slash_pos >= 0:
+					user_input.text = text.substr(0, slash_pos) + cmd_text
+				else:
+					user_input.text = cmd_text
+				input_menu_list.hide()
+				input_menu_list.clear()
+				user_input.grab_focus()
+				user_input.set_caret_column(user_input.text.length())
 
-		MenuListType.Skill:
-			user_input.text = "/" + str(menu_list[index]) + " "
-			input_menu_list.hide()
-			input_menu_list.clear()
-			user_input.grab_focus()
-			user_input.set_caret_column(user_input.text.length())
+			MenuListType.Skill:
+				var skill_text = "/" + str(menu_list[index]) + " "
+				var slash_pos = text.find("/")
+				if slash_pos >= 0:
+					user_input.text = text.substr(0, slash_pos) + skill_text
+				else:
+					user_input.text = skill_text
+				input_menu_list.hide()
+				input_menu_list.clear()
+				user_input.grab_focus()
+				user_input.set_caret_column(user_input.text.length())
 
-		MenuListType.File:
-			user_input.text = menu_list[index].path + " "
-			input_menu_list.hide()
-			input_menu_list.clear()
-			user_input.grab_focus()
-			user_input.set_caret_column(user_input.text.length())
+			MenuListType.File:
+				var at_pos = text.rfind("@")
+				# 只替换 @ 到第一个空格之间的部分，保留后面的内容
+				var after_at = text.substr(at_pos + 1) if at_pos >= 0 else ""
+				var space_pos = after_at.find(" ")
+				var file_text = menu_list[index].path + " "
+				var suffix = ""
+				if at_pos >= 0:
+					if space_pos >= 0:
+						suffix = after_at.substr(space_pos)
+					user_input.text = text.substr(0, at_pos) + file_text + suffix
+				else:
+					user_input.text = file_text
+				input_menu_list.hide()
+				input_menu_list.clear()
+				user_input.grab_focus()
+				user_input.set_caret_column(user_input.text.length())
 
 func _on_user_input_gui_input(event: InputEvent) -> void:
 	if disable:
@@ -564,13 +592,16 @@ func get_filtered_file_list(text: String) -> Array:
 	if at_index < 0:
 		return []
 	var prefix = text.substr(at_index + 1)
+	# 只取 @ 到第一个空格之间的内容作为搜索条件
+	var space_pos = prefix.find(" ")
+	if space_pos >= 0:
+		prefix = prefix.substr(0, space_pos)
 	var filtered: Array
 	if prefix.is_empty():
 		# 只有 @ 时显示根目录下文件（限制20条）
 		filtered = get_project_file_list("res://", 1).slice(0, 20)
 	else:
-		var all_files = get_project_file_list()
-		filtered = all_files.filter(func(f): return f.path.contains(prefix))
+		filtered = _cached_file_list.filter(func(f): return f.path.contains(prefix))
 	return filtered.slice(0, 20) if filtered.size() > 20 else filtered
 
 ## 获取项目文件列表
