@@ -28,7 +28,9 @@ signal model_changed(supplier_id: String, model_id: String)
 
 enum MenuListType {
 	None,
-	Command
+	Command,
+	Skill,
+	File
 }
 
 var menu_list_type: MenuListType = MenuListType.None
@@ -405,13 +407,49 @@ func check_disallowed_char(text: String) -> bool:
 	return true
 
 func on_user_input_text_changed():
-	if user_input.text.begins_with("/") and check_disallowed_char(user_input.text):
+	var text = user_input.text
+
+	# 检测 @ 触发文件列表
+	if "@" in text:
 		input_menu_list.show()
 		input_menu_list.clear()
-		menu_list = command_list.filter(func (command): return command.command.contains(user_input.text))
-		for command_item in menu_list:
-			input_menu_list.add_item(command_item.command + " " + command_item.description)
-		menu_list_type = MenuListType.Command
+		menu_list = get_filtered_file_list(text)
+		for file_item in menu_list:
+			input_menu_list.add_item(file_item.path)
+		menu_list_type = MenuListType.File
+
+	# 检测 / 触发命令或 skill
+	elif text.begins_with("/") and check_disallowed_char(text):
+		input_menu_list.show()
+		input_menu_list.clear()
+
+		# 过滤命令（只有 / 时显示所有命令）
+		var filtered_commands = command_list
+		if text.length() > 1:
+			filtered_commands = command_list.filter(func (command): return command.command.contains(text))
+		# 过滤 skill（只有 / 时显示所有 skill）
+		var filtered_skills = get_filtered_skill_list(text if text.length() > 1 else "")
+
+		# 先显示命令（优先级高）
+		for cmd in filtered_commands:
+			input_menu_list.add_item(cmd.command + " " + cmd.description)
+		# 再显示 skill，显示格式：/skill_name [描述]
+		for skill_name in filtered_skills:
+			var skill_desc = get_skill_description(skill_name)
+			var display_text = "/" + skill_name
+			if not skill_desc.is_empty():
+				display_text += " [" + skill_desc + "]"
+			input_menu_list.add_item(display_text)
+
+		if filtered_commands.size() > 0:
+			menu_list_type = MenuListType.Command
+		elif filtered_skills.size() > 0:
+			menu_list_type = MenuListType.Skill
+		else:
+			menu_list_type = MenuListType.Command  # / 后面没有匹配时仍显示菜单
+
+		menu_list = filtered_commands + filtered_skills
+
 	else:
 		menu_list_type = MenuListType.None
 		input_menu_list.hide()
@@ -420,9 +458,29 @@ func on_user_input_text_changed():
 func on_input_menu_list_item_selected(index: int):
 	match menu_list_type:
 		MenuListType.Command:
-			user_input.text = menu_list[index].command
+			var item = menu_list[index]
+			if item is Dictionary:
+				user_input.text = item.command + " "
+			else:
+				user_input.text = "/" + str(item) + " "
 			input_menu_list.hide()
 			input_menu_list.clear()
+			user_input.grab_focus()
+			user_input.set_caret_column(user_input.text.length())
+
+		MenuListType.Skill:
+			user_input.text = "/" + str(menu_list[index]) + " "
+			input_menu_list.hide()
+			input_menu_list.clear()
+			user_input.grab_focus()
+			user_input.set_caret_column(user_input.text.length())
+
+		MenuListType.File:
+			user_input.text = menu_list[index].path + " "
+			input_menu_list.hide()
+			input_menu_list.clear()
+			user_input.grab_focus()
+			user_input.set_caret_column(user_input.text.length())
 
 func _on_user_input_gui_input(event: InputEvent) -> void:
 	if disable:
@@ -476,3 +534,89 @@ func on_click_stop_button():
 
 func get_use_thinking() -> bool:
 	return use_thinking.button_pressed
+
+## 获取过滤后的 skill 列表
+func get_filtered_skill_list(prefix: String) -> Array:
+	var skill_manager = AlphaAgentPlugin.global_setting.skill_manager
+	if skill_manager == null:
+		return []
+	var all_skills = skill_manager.get_skill_names()
+	var search_term = prefix.substr(1) if prefix.begins_with("/") else prefix
+	# 空搜索词返回所有 skill
+	if search_term.is_empty():
+		return all_skills
+	var filtered = all_skills.filter(func(name): return name.contains(search_term))
+	return filtered
+
+## 获取 skill 的描述
+func get_skill_description(skill_name: String) -> String:
+	var skill_manager = AlphaAgentPlugin.global_setting.skill_manager
+	if skill_manager == null:
+		return ""
+	var skill = skill_manager.get_skill(skill_name)
+	if skill == null:
+		return ""
+	return skill.skill_description if skill.skill_description else ""
+
+## 获取过滤后的文件列表
+func get_filtered_file_list(text: String) -> Array:
+	var at_index = text.find("@")
+	if at_index < 0:
+		return []
+	var prefix = text.substr(at_index + 1)
+	var filtered: Array
+	if prefix.is_empty():
+		# 只有 @ 时显示根目录下文件（限制20条）
+		filtered = get_project_file_list("res://", 1).slice(0, 20)
+	else:
+		var all_files = get_project_file_list()
+		filtered = all_files.filter(func(f): return f.path.contains(prefix))
+	return filtered.slice(0, 20) if filtered.size() > 20 else filtered
+
+## 获取项目文件列表
+func get_project_file_list(start_path: String = "res://", interation: int = -1) -> Array:
+	var ignore_patterns = [".alpha", ".godot", "*.uid", "addons", "*.import"]
+	var queue = [{"path": start_path, "interation": interation}]
+	var file_list = []
+
+	while queue.size():
+		var current_item = queue.pop_front()
+		var current_interation = current_item.interation
+		var current_dir = current_item.path
+		# interation < 0 表示无深度限制
+		if current_interation == 0:
+			continue
+		var dir = DirAccess.open(current_dir)
+		if dir:
+			dir.list_dir_begin()
+			var file_name = dir.get_next()
+			while file_name != "":
+				var match_result = true
+				for pattern in ignore_patterns:
+					if file_name.match(pattern):
+						match_result = false
+						break
+				if match_result:
+					var full_path = current_dir + file_name
+					if dir.current_is_dir():
+						file_list.push_back({
+							"path": full_path,
+							"type": "directory"
+						})
+						if current_interation > 0:
+							queue.push_back({
+								"path": full_path + "/",
+								"interation": current_interation - 1
+							})
+						else:
+							queue.push_back({
+								"path": full_path + "/",
+								"interation": current_interation
+							})
+					else:
+						file_list.push_back({
+							"path": full_path,
+							"type": "file"
+						})
+				file_name = dir.get_next()
+	return file_list
