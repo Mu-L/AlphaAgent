@@ -121,28 +121,28 @@ class ModelManager:
 		deepseek_supplier.provider = "deepseek"
 		suppliers.append(deepseek_supplier)
 
-		var chat_model = ModelInfo.new()
-		chat_model.name = "DeepSeek Chat"
-		chat_model.model_name = "deepseek-chat"
-		chat_model.supports_thinking = false
-		chat_model.supports_tools = true
-		chat_model.max_tokens = 8 * 1024
-		chat_model.active = false
-		chat_model.supplier_id = deepseek_supplier.id
-		deepseek_supplier.models.append(chat_model)
+		var deepseek_v4_flash_model = ModelInfo.new()
+		deepseek_v4_flash_model.name = "DeepSeek V4 Flash"
+		deepseek_v4_flash_model.model_name = "deepseek-v4-flash"
+		deepseek_v4_flash_model.supports_thinking = true
+		deepseek_v4_flash_model.supports_tools = true
+		deepseek_v4_flash_model.max_tokens = 384 * 1024
+		deepseek_v4_flash_model.active = false
+		deepseek_v4_flash_model.supplier_id = deepseek_supplier.id
+		deepseek_supplier.models.append(deepseek_v4_flash_model)
 
-		var reasoner_model = ModelInfo.new()
-		reasoner_model.name = "DeepSeek Reasoner"
-		reasoner_model.model_name = "deepseek-reasoner"
-		reasoner_model.supports_thinking = true
-		reasoner_model.supports_tools = true
-		reasoner_model.max_tokens = 64 * 1024
-		reasoner_model.active = false
-		reasoner_model.supplier_id = deepseek_supplier.id
-		deepseek_supplier.models.append(reasoner_model)
+		var deepseek_v4_pro_model = ModelInfo.new()
+		deepseek_v4_pro_model.name = "DeepSeek V4 Pro"
+		deepseek_v4_pro_model.model_name = "deepseek-v4-pro"
+		deepseek_v4_pro_model.supports_thinking = true
+		deepseek_v4_pro_model.supports_tools = true
+		deepseek_v4_pro_model.max_tokens = 384 * 1024
+		deepseek_v4_pro_model.active = false
+		deepseek_v4_pro_model.supplier_id = deepseek_supplier.id
+		deepseek_supplier.models.append(deepseek_v4_pro_model)
 
 		current_supplier_id = deepseek_supplier.id
-		current_model_id = reasoner_model.id
+		current_model_id = deepseek_v4_pro_model.id
 
 		# 添加默认MoonShot供应商
 		var moonshot_supplier = SupplierInfo.new()
@@ -248,45 +248,25 @@ class ModelManager:
 		minimax_supplier.provider = "minimax"
 		suppliers.append(minimax_supplier)
 
-		var minimax_m25_model = ModelInfo.new()
-		minimax_m25_model.name = "MiniMax-M2.5"
-		minimax_m25_model.model_name = "MiniMax-M2.5"
-		minimax_m25_model.supports_thinking = true
-		minimax_m25_model.supports_tools = true
-		minimax_m25_model.max_tokens = 64 * 1024
-		minimax_m25_model.active = false
-		minimax_m25_model.supplier_id = minimax_supplier.id
-		minimax_supplier.models.append(minimax_m25_model)
+		var minimax_m27_model = ModelInfo.new()
+		minimax_m27_model.name = "MiniMax-M2.7"
+		minimax_m27_model.model_name = "MiniMax-M2.7"
+		minimax_m27_model.supports_thinking = true
+		minimax_m27_model.supports_tools = true
+		minimax_m27_model.max_tokens = 64 * 1024
+		minimax_m27_model.active = false
+		minimax_m27_model.supplier_id = minimax_supplier.id
+		minimax_supplier.models.append(minimax_m27_model)
 
-		var minimax_m25_hs_model = ModelInfo.new()
-		minimax_m25_hs_model.name = "MiniMax-M2.5-highspeed"
-		minimax_m25_hs_model.model_name = "MiniMax-M2.5-highspeed"
-		minimax_m25_hs_model.supports_thinking = true
-		minimax_m25_hs_model.supports_tools = true
-		minimax_m25_hs_model.max_tokens = 64 * 1024
-		minimax_m25_hs_model.active = false
-		minimax_m25_hs_model.supplier_id = minimax_supplier.id
-		minimax_supplier.models.append(minimax_m25_hs_model)
-
-		var minimax_m21_model = ModelInfo.new()
-		minimax_m21_model.name = "MiniMax-M2.1"
-		minimax_m21_model.model_name = "MiniMax-M2.1"
-		minimax_m21_model.supports_thinking = true
-		minimax_m21_model.supports_tools = true
-		minimax_m21_model.max_tokens = 64 * 1024
-		minimax_m21_model.active = false
-		minimax_m21_model.supplier_id = minimax_supplier.id
-		minimax_supplier.models.append(minimax_m21_model)
-
-		var minimax_m2_model = ModelInfo.new()
-		minimax_m2_model.name = "MiniMax-M2"
-		minimax_m2_model.model_name = "MiniMax-M2"
-		minimax_m2_model.supports_thinking = false
-		minimax_m2_model.supports_tools = true
-		minimax_m2_model.max_tokens = 64 * 1024
-		minimax_m2_model.active = false
-		minimax_m2_model.supplier_id = minimax_supplier.id
-		minimax_supplier.models.append(minimax_m2_model)
+		var minimax_m27_hs_model = ModelInfo.new()
+		minimax_m27_hs_model.name = "MiniMax-M2.7-highspeed"
+		minimax_m27_hs_model.model_name = "MiniMax-M2.7-highspeed"
+		minimax_m27_hs_model.supports_thinking = true
+		minimax_m27_hs_model.supports_tools = true
+		minimax_m27_hs_model.max_tokens = 64 * 1024
+		minimax_m27_hs_model.active = false
+		minimax_m27_hs_model.supplier_id = minimax_supplier.id
+		minimax_supplier.models.append(minimax_m27_hs_model)
 
 		# 添加默认Gemini供应商
 		var gemini_supplier = SupplierInfo.new()
