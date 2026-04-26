@@ -192,11 +192,11 @@ func do_action(tool_call: AgentModelUtils.ToolCallsInfo) -> Dictionary:
 			var action = track_action.action as String
 			match action:
 				"add":
-					var result = _add_track(animation, track_action)
+					var result = _add_track(animation, track_action, anim_player)
 					if result.has("error"):
 						return result
 				"edit":
-					var result = _edit_track(animation, track_action)
+					var result = _edit_track(animation, track_action, anim_player)
 					if result.has("error"):
 						return result
 				_:
@@ -228,9 +228,46 @@ func do_action(tool_call: AgentModelUtils.ToolCallsInfo) -> Dictionary:
 	return {"success": true, "message": "动画编辑完成。"}
 
 
+# ---- 路径转换 ----
+
+## 将场景根节点相对路径转换为 AnimationPlayer 的 root_node 相对路径
+## 例如场景层级为 AnimTest/AnimationPlayer + AnimTest/Sprite2D，
+## 传入 "Sprite2D" 场景根节点相对路径，root_node=AnimTest，返回 "Sprite2D"（不变）
+## 如果 root_node 不是场景根节点，自动计算相对路径
+static func _resolve_anim_root_path(anim_player: AnimationPlayer, raw_path: String) -> String:
+	var scene_root = EditorInterface.get_edited_scene_root()
+	if not scene_root:
+		return raw_path
+
+	# 如果路径就是 "."，保持不动
+	if raw_path == ".":
+		return raw_path
+
+	# 标准化场景根节点相对路径
+	var normalized = AgentToolUtils.normalize_node_path(raw_path, scene_root.name)
+
+	# 在场景中查找目标节点
+	var target = scene_root.get_node(normalized)
+	if not target:
+		# 如果找不到，尝试直接用 raw_path 解析
+		target = scene_root.get_node(raw_path)
+	if not target:
+		return raw_path
+
+	# 获取 AnimationPlayer 的 root_node
+	var root_node_path = anim_player.root_node
+	var root = anim_player.get_node(root_node_path) if root_node_path else null
+	if not root:
+		return raw_path
+
+	# 计算从 root_node 到目标节点的相对路径
+	var relative = root.get_path_to(target)
+	return str(relative)
+
+
 # ---- 轨道操作 ----
 
-static func _add_track(animation: Animation, track_action: Dictionary) -> Dictionary:
+static func _add_track(animation: Animation, track_action: Dictionary, anim_player: AnimationPlayer) -> Dictionary:
 	if not track_action.has("track_type") or not track_action.has("node_path"):
 		return {"error": "添加轨道需要提供 track_type 和 node_path。"}
 
@@ -240,23 +277,24 @@ static func _add_track(animation: Animation, track_action: Dictionary) -> Dictio
 		return {"error": "无效的轨道类型：'" + track_type_str + "'。"}
 
 	var new_idx = animation.add_track(track_type)
-	var node_path = track_action.node_path as String
+	var raw = track_action.node_path as String
+	var resolved = _resolve_anim_root_path(anim_player, raw)
 
 	match track_type:
 		Animation.TYPE_VALUE:
 			var property = track_action.get("property", "")
-			animation.track_set_path(new_idx, NodePath(node_path + ":" + property))
+			animation.track_set_path(new_idx, NodePath(resolved + ":" + property))
 		Animation.TYPE_METHOD:
-			animation.track_set_path(new_idx, NodePath(node_path))
+			animation.track_set_path(new_idx, NodePath(resolved))
 		Animation.TYPE_BEZIER:
 			var property = track_action.get("property", "")
-			animation.track_set_path(new_idx, NodePath(node_path + ":" + property))
+			animation.track_set_path(new_idx, NodePath(resolved + ":" + property))
 		_:
-			animation.track_set_path(new_idx, NodePath(node_path))
+			animation.track_set_path(new_idx, NodePath(resolved))
 
 	return {}
 
-static func _edit_track(animation: Animation, track_action: Dictionary) -> Dictionary:
+static func _edit_track(animation: Animation, track_action: Dictionary, anim_player: AnimationPlayer) -> Dictionary:
 	if not track_action.has("track_index"):
 		return {"error": "编辑轨道需要提供 track_index。"}
 
@@ -265,12 +303,13 @@ static func _edit_track(animation: Animation, track_action: Dictionary) -> Dicti
 		return {"error": "编辑轨道：索引 " + str(track_idx) + " 无效。"}
 
 	if track_action.has("node_path"):
-		var node_path = track_action.node_path as String
+		var raw = track_action.node_path as String
+		var resolved = _resolve_anim_root_path(anim_player, raw)
 		if track_action.has("property"):
 			var property = track_action.property as String
-			animation.track_set_path(track_idx, NodePath(node_path + ":" + property))
+			animation.track_set_path(track_idx, NodePath(resolved + ":" + property))
 		else:
-			animation.track_set_path(track_idx, NodePath(node_path))
+			animation.track_set_path(track_idx, NodePath(resolved))
 
 	return {}
 

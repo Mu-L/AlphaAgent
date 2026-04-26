@@ -93,6 +93,22 @@ static func create_script(inherits: String, path: String) -> bool:
 	return false
 
 
+## 标准化节点路径：去除 "./" 前缀和根节点名前缀
+## 例如："./AnimPlayer" -> "AnimPlayer"，"TestRoot/AnimPlayer" -> "AnimPlayer"，"." -> "."
+static func normalize_node_path(node_path: String, root_name: String) -> String:
+	var result = node_path.strip_edges()
+	if result.is_empty():
+		return result
+	if result.begins_with("./") or result.begins_with(".\\"):
+		result = result.substr(2)
+	if not root_name.is_empty():
+		var prefix = root_name + "/"
+		if result.begins_with(prefix):
+			result = result.substr(prefix.length())
+		elif result == root_name:
+			result = "."
+	return result
+
 ## 获取目标节点（会打开场景并在编辑器中选中）
 static func get_target_node(scene_path: String, node_path: String) -> Node:
 	if not ResourceLoader.exists(scene_path):
@@ -119,9 +135,10 @@ static func get_target_node(scene_path: String, node_path: String) -> Node:
 		printerr("错误：场景打开后，无法获取其根节点。")
 		return null
 
-	var target_node = scene_root.get_node(node_path)
+	var normalized = normalize_node_path(node_path, scene_root.name)
+	var target_node = scene_root.get_node(normalized)
 	if not target_node:
-		printerr("错误：在场景 '", scene_root.name, "' 中找不到路径为 '", node_path, "' 的节点。请检查节点路径是否正确。")
+		printerr("错误：在场景 '", scene_root.name, "' 中找不到路径为 '", node_path, "' 的节点（标准化后：'", normalized, "'）。请检查节点路径是否正确。")
 		return null
 
 	EditorInterface.get_selection().clear()

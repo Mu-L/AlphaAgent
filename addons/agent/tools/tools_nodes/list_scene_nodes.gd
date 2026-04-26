@@ -56,13 +56,14 @@ func do_action(tool_call: AgentModelUtils.ToolCallsInfo) -> Dictionary:
 			var script_path = ""
 			if script:
 				script_path = script.resource_path
+			var root_name = root_node.name
 			var current_node_info = {
 				"unique_node_path": root_node.get_path_to(current_node, true),
-				"node_path": root_node.get_path_to(current_node, false),
+				"node_path": AgentToolUtils.normalize_node_path(root_node.get_path_to(current_node, false), root_name),
 				"node_name": current_node.get_name(),
 				"node_base_type": current_node.get_class(),
 				"script": script_path,
-				"parent": root_node.get_path_to(current_node.get_parent(), false)
+				"parent": AgentToolUtils.normalize_node_path(root_node.get_path_to(current_node.get_parent(), false), root_name)
 			}
 
 			if print_edited_properties:
