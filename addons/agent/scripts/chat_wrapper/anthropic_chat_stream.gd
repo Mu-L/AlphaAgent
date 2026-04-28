@@ -33,6 +33,8 @@ var _stop_reason: String = ""
 var _input_tokens: int = 0
 var _output_tokens: int = 0
 var _finished: bool = false
+var _request_start_time: float = 0.0
+var _response_code_checked: bool = false
 
 func post_message(messages: Array[Dictionary]):
 	close()
@@ -80,6 +82,7 @@ func post_message(messages: Array[Dictionary]):
 		return
 
 	generatting = true
+	_request_start_time = Time.get_ticks_msec()
 
 func _process(_delta):
 	if not generatting:
@@ -89,6 +92,19 @@ func _process(_delta):
 	var status := client.get_status()
 
 	if status == HTTPClient.STATUS_BODY:
+		if not _response_code_checked:
+			_response_code_checked = true
+			var code := client.get_response_code()
+			if code != 200:
+				var error_body := PackedByteArray()
+				while client.get_status() == HTTPClient.STATUS_BODY:
+					client.poll()
+					var error_chunk = client.read_response_body_chunk()
+					if error_chunk.size() > 0:
+						error_body.append_array(error_chunk)
+					await get_tree().process_frame
+				_emit_error("Anthropic HTTP错误 %d" % code, {"status_code": code, "body": error_body.get_string_from_utf8()})
+				return
 		var chunk = client.read_response_body_chunk()
 		if chunk.size() > 0:
 			buffer += chunk
@@ -98,8 +114,15 @@ func _process(_delta):
 			_finalize()
 	elif status == HTTPClient.STATUS_CONNECTED:
 		pass
-	elif status != HTTPClient.STATUS_REQUESTING:
-		_emit_error("Anthropic 请求状态异常", {"status": status})
+	elif status == HTTPClient.STATUS_REQUESTING:
+		pass
+	elif status == HTTPClient.STATUS_RESOLVING or status == HTTPClient.STATUS_CONNECTING:
+		pass
+	else:
+		# 检查超时：超过30秒没有收到数据
+		var elapsed := Time.get_ticks_msec() - _request_start_time
+		if elapsed > 30000 and not _finished:
+			_finalize()
 
 func _process_buffer():
 	var new_text := buffer.get_string_from_utf8()
@@ -119,6 +142,9 @@ func _process_buffer():
 func _process_sse_event_block(event_block: String):
 	if event_block.is_empty():
 		return
+
+	if print_log:
+		print("Anthropic SSE Block: ", event_block)
 
 	var event_name := ""
 	var data_lines: Array[String] = []
@@ -147,6 +173,9 @@ func _process_sse_event_block(event_block: String):
 func _process_chunk(event_name: String, data: Dictionary):
 	var data_type := str(data.get("type", ""))
 	var event_type := data_type if not data_type.is_empty() else event_name
+
+	if print_log:
+		print("Anthropic Chunk: type=", event_type, " data=", JSON.stringify(data))
 
 	match event_type:
 		"message_start":
@@ -181,8 +210,10 @@ func _on_content_block_start(data: Dictionary):
 		info.function.arguments = ""
 		_tool_has_full_input[idx] = false
 
-		if block.has("input"):
-			info.function.arguments = JSON.stringify(block.get("input", {}))
+		# 检查 input 是否为非空字典（有些兼容网关会返回 input:{} 空对象）
+		var input_val = block.get("input")
+		if input_val is Dictionary and not input_val.is_empty():
+			info.function.arguments = JSON.stringify(input_val)
 			_tool_has_full_input[idx] = true
 
 		_tool_call_map[idx] = info
@@ -245,6 +276,9 @@ func _finalize():
 	generatting = false
 
 	_build_tool_calls()
+	if print_log:
+		print("Anthropic Final tool_calls: ", JSON.stringify(tool_calls.map(func(t): return t.to_dict())))
+
 	if not tool_calls.is_empty():
 		use_tool.emit(tool_calls)
 		if _stop_reason.is_empty():
@@ -255,6 +289,8 @@ func _finalize():
 
 func _build_tool_calls():
 	tool_calls = []
+	if print_log:
+		print("Anthropic _build_tool_calls: _tool_call_map=", JSON.stringify(_tool_call_map))
 	for idx in _tool_call_order:
 		if not _tool_call_map.has(idx):
 			continue
@@ -408,12 +444,25 @@ func _convert_messages(messages: Array[Dictionary]) -> Array[Dictionary]:
 				})
 			"assistant":
 				var blocks: Array = []
-				var text_content := str(msg.get("content", ""))
-				if not text_content.is_empty():
-					blocks.append({
-						"type": "text",
-						"text": text_content
-					})
+
+				# 添加 thinking block（thinking 模式下 API 要求传回）
+				if msg.has("reasoning_content"):
+					var reasoning := str(msg.get("reasoning_content", ""))
+					if not reasoning.is_empty() and reasoning != "null" and reasoning != "<null>":
+						blocks.append({
+							"type": "thinking",
+							"thinking": reasoning
+						})
+
+				# 检查 content 是否为 null 或 "null" 字符串
+				var raw_content = msg.get("content")
+				if raw_content != null and raw_content != "null" and raw_content != "<null>":
+					var text_content := str(raw_content)
+					if not text_content.is_empty() and text_content != "null" and text_content != "<null>":
+						blocks.append({
+							"type": "text",
+							"text": text_content
+						})
 
 				if msg.has("tool_calls") and msg["tool_calls"] is Array:
 					for item in msg["tool_calls"]:
@@ -432,8 +481,20 @@ func _convert_messages(messages: Array[Dictionary]) -> Array[Dictionary]:
 							"input": _parse_tool_arguments(str(fn.get("arguments", "")))
 						})
 
-				if blocks.is_empty():
-					blocks.append({
+				# 确保 assistant 消息至少包含一个 text block
+				# 某些兼容网关（如 DeepSeek）要求必须有 text block，即使内容为空
+				var has_text_block := false
+				for block in blocks:
+					if str(block.get("type", "")) == "text":
+						has_text_block = true
+						break
+				if not has_text_block:
+					# 找到 thinking block 之后的位置插入（保持 thinking → text → tool_use 顺序）
+					var insert_pos := 0
+					for bi in range(blocks.size()):
+						if str(blocks[bi].get("type", "")) == "thinking":
+							insert_pos = bi + 1
+					blocks.insert(insert_pos, {
 						"type": "text",
 						"text": ""
 					})
@@ -507,6 +568,8 @@ func _reset_state():
 	_input_tokens = 0
 	_output_tokens = 0
 	_finished = false
+	_request_start_time = 0.0
+	_response_code_checked = false
 
 func close():
 	generatting = false

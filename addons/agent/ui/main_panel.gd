@@ -159,7 +159,6 @@ func _on_model_selected(supplier_id: String, model_id: String):
 	# 更新输入容器的模型选择器显示
 	_init_model_selector()
 
-
 # 模型配置变更回调
 func _on_models_changed():
 	_init_model_selector()
@@ -318,7 +317,8 @@ func on_agent_think(think: String):
 		# 只有模型支持 thinking 时才更新 thinking 内容
 		if model_supports_thinking:
 			current_think += think
-			current_message_item.update_think_content(current_think)
+			if current_message_item:
+				current_message_item.update_think_content(current_think)
 			scroll_message_container_to_bottom()
 
 		current_message_item.message_id = current_random_message_id
@@ -347,7 +347,6 @@ func on_use_tool(tool_calls: Array):
 		"tool_calls": tool_calls.map(func (tool): return tool.to_dict()),
 		"id": current_random_message_id
 	})
-
 
 	for tool in tool_calls:
 		#print(tool.id)
@@ -405,7 +404,6 @@ func on_click_new_chat_button():
 	input_container.disable = false
 	show_container(chat_container)
 	plan_list.update_list([])
-
 
 func clear():
 	welcome_message.show()
