@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-05-11
+
+### ✨ New Features (新增功能)
+- **供应商与模型**:
+  - 新增 Anthropic 类型供应商支持。
+  - 修改默认供应商模型，支持 DeepSeek-V4 和 MiniMax-M2.7。
+- **动画工具**:
+  - 添加动画播放器相关的工具调用。
+  - 统一节点路径标准化，支持自动转换场景根节点路径与 AnimationPlayer root_node 相对路径。
+- **Tools**
+  - 添加读取和操作用户输入映射工具。
+- **技能系统**:
+  - 重构 skill 加载系统，添加大量默认 skill。
+- **输入优化**:
+  - 优化用户输入框，添加 skill 和 path 补全功能。
+
+### 🐛 Bug Fixes (问题修复)
+- 修复 CheckScriptError 工具在脚本含有 `class_name` 定义时静态检查始终失败的问题。([#9](https://github.com/925236118/AlphaAgent/pull/9))
+- 优化标题生成逻辑和思考内容展示。
+
+### 🔧 Improvements (优化改进)
+- 修改代码文件层级，优化项目结构。
+
 ## [0.4.0] - 2026-02-24
 
 ### ✨ New Features (新增功能)
