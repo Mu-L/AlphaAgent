@@ -412,6 +412,7 @@ func check_disallowed_char(text: String) -> bool:
 
 func on_user_input_text_changed():
 	var text = user_input.text
+	_clamp_input_height()
 
 	# 检测 @ 触发文件列表
 	if "@" in text:
@@ -463,6 +464,26 @@ func on_user_input_text_changed():
 		menu_list_type = MenuListType.None
 		input_menu_list.hide()
 		input_menu_list.clear()
+
+## 限制输入框最大高度，超出后内部滚动
+func _clamp_input_height():
+	const MAX_HEIGHT := 200.0
+	const MIN_HEIGHT := 60.0
+
+	var wrapped_lines := 0
+	for i in range(user_input.get_line_count()):
+		wrapped_lines += user_input.get_line_wrap_count(i)
+
+	var font_size := user_input.get_theme_font_size(&"font_size")
+	var line_height := font_size * 1.5
+	var content_h := wrapped_lines * line_height + 16.0
+
+	if content_h > MAX_HEIGHT:
+		user_input.scroll_fit_content_height = false
+		user_input.custom_minimum_size.y = MAX_HEIGHT
+	else:
+		user_input.scroll_fit_content_height = true
+		user_input.custom_minimum_size.y = max(MIN_HEIGHT, content_h)
 
 func on_input_menu_list_item_selected(index: int):
 		var text = user_input.text
