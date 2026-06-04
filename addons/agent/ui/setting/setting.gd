@@ -34,6 +34,8 @@ signal config_model
 var suppliers: Array[AgentSupplierItem] = []
 
 func _ready() -> void:
+	await owner.ready
+	#print("settings ready")
 	init_item_values()
 	supplier_option_button.pressed.connect(show_supplier_option_window)
 	init_signals()
@@ -89,7 +91,6 @@ func init_roles():
 	while AlphaAgentPlugin.global_setting.role_manager == null and wait_count < max_wait_frames:
 		await get_tree().process_frame
 		wait_count += 1
-
 	refresh_roles()
 
 func refresh_roles():

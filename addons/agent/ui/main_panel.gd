@@ -79,7 +79,6 @@ const MAX_TITLE_LENGTH: int = 20
 const AUTO_SCROLL_BOTTOM_TOLERANCE := 10.0
 
 func _ready() -> void:
-	#print("main panel ready")
 	show_container(chat_container)
 	# 等待插件实例可用后再连接信号
 	_connect_plugin_signals()

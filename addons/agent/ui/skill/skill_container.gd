@@ -13,6 +13,7 @@ extends VBoxContainer
 @onready var skill_content_input: TextEdit = %SkillContentInput
 @onready var confirm_button: Button = %ConfirmButton
 @onready var cancel_button: Button = %CancelButton
+@onready var open_skill_dir_button: Button = %OpenSkillDirButton
 
 const SKILL_ITEM = preload("uid://dkic1ui7mmhyy")
 
@@ -24,6 +25,7 @@ func _ready() -> void:
 	add_skill_button.pressed.connect(on_add_skill_button_pressed)
 	confirm_button.pressed.connect(on_confirm_button_pressed)
 	cancel_button.pressed.connect(on_cancel_button_pressed)
+	open_skill_dir_button.pressed.connect(on_open_skill_dir_button_pressed)
 	add_skill_nodes()
 
 func on_visibility_changed():
@@ -106,3 +108,6 @@ func on_confirm_button_pressed():
 func on_cancel_button_pressed():
 	skill_list_container.show()
 	skill_edit_container.hide()
+
+func on_open_skill_dir_button_pressed():
+	OS.shell_show_in_file_manager(AlphaAgentPlugin.global_setting.skill_directory)
