@@ -23,10 +23,6 @@ window/size/viewport_height=1152
 
 project/assembly_name="GodotAiAgent"
 
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/agent/plugin.cfg")
-
 [input]
 
 jump={
