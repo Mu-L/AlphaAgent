@@ -1,15 +1,15 @@
 @tool
-class_name OpenAIChatStream
+class_name DeepSeekChatStream
 extends Node
 
-## 通用的OpenAI规范流式聊天客户端，支持所有兼容OpenAI API的服务
+## DeepSeek 流式聊天客户端
 
 ## API基础URL
-@export var api_base: String = "https://api.openai.com"
+@export var api_base: String = "https://api.deepseek.com"
 ## API密钥
 @export var secret_key: String = ''
 ## 模型名称
-@export var model_name: String = "gpt-3.5-turbo"
+@export var model_name: String = "deepseek-chat"
 ## 是否使用深度思考
 @export var use_thinking: bool = false
 ## 温度值，越高输出越随机，默认为1
@@ -289,7 +289,7 @@ func _process_chunk(data: Dictionary):
 	var delta = choice.get("delta", {})
 	var finish_reason = choice.get("finish_reason", null)
 
-	# 处理思考内容（支持 reasoning_content 的提供商，如 SiliconFlow）
+	# 处理思考内容
 	if delta.has("reasoning_content") and delta["reasoning_content"] != null:
 		think.emit(delta["reasoning_content"])
 

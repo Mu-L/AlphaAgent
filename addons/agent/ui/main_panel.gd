@@ -79,6 +79,7 @@ const MAX_TITLE_LENGTH: int = 20
 const AUTO_SCROLL_BOTTOM_TOLERANCE := 10.0
 
 func _ready() -> void:
+	#print("main panel ready")
 	show_container(chat_container)
 	# 等待插件实例可用后再连接信号
 	_connect_plugin_signals()
@@ -245,9 +246,14 @@ func send_messages():
 			current_title_chat = MoonShotChat.new()
 			current_chat_stream.secret_key = supplier.api_key
 			current_title_chat.secret_key = supplier.api_key
-		elif supplier.provider == "openai" or supplier.provider == "deepseek":
+		elif supplier.provider == "openai":
 			current_chat_stream = OpenAIChatStream.new()
 			current_title_chat = OpenAIChat.new()
+			current_chat_stream.secret_key = supplier.api_key
+			current_title_chat.secret_key = supplier.api_key
+		elif supplier.provider == "deepseek":
+			current_chat_stream = DeepSeekChatStream.new()
+			current_title_chat = DeepSeekChat.new()
 			current_chat_stream.secret_key = supplier.api_key
 			current_title_chat.secret_key = supplier.api_key
 		elif supplier.provider == "anthropic":
