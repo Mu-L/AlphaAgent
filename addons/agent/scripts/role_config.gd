@@ -127,26 +127,18 @@ class RoleManager:
 		AlphaAgentPlugin.print_alpha_message("{0}个角色加载完成".format([roles.size()]))
 
 	func add_default_roles():
-		# 使用单例，等待 main_panel 初始化
+		# 用户手动触发，此时 main_panel 必定已就绪
 		var singleton = AlphaAgentSingleton.get_instance()
+		if singleton.main_panel == null:
+			push_error("主面板未初始化，无法创建默认角色")
+			return
 
-		# 等待 main_panel 初始化（在 _enter_tree 中创建）
-		var max_wait_time = 10.0
-		var elapsed_time = 0.0
-		var start_time = Time.get_ticks_msec()
+		var tools_node = singleton.main_panel.get("tools")
+		if tools_node == null or not (tools_node is AgentTools):
+			push_error("工具列表未初始化，无法创建默认角色")
+			return
 
-		while singleton.main_panel == null:
-			await AlphaAgentPlugin.wait_for_scene_tree_frame()
-			elapsed_time = (Time.get_ticks_msec() - start_time) / 1000.0
-			if elapsed_time >= max_wait_time:
-				push_error("等待 main_panel 初始化超时")
-				return
-
-		# 等待一帧，确保工具列表已加载
-		await AlphaAgentPlugin.wait_for_scene_tree_frame()
-
-		# 缓存工具列表，避免重复调用
-		var tools_dict = singleton.main_panel.tools.get_function_name_list()
+		var tools_dict = tools_node.get_function_name_list()
 		var tools_keys = tools_dict.keys()
 
 		# 添加默认角色
@@ -176,7 +168,6 @@ class RoleManager:
 		save_datas()
 
 		AlphaAgentPlugin.print_alpha_message("{0}个默认角色创建完成".format([roles.size()]))
-
 
 	func save_datas():
 		var data = {

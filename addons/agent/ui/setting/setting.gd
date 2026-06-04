@@ -12,13 +12,14 @@ extends ScrollContainer
 @onready var add_supplier_button: Button = %AddSupplierButton
 @onready var supplier_list: VBoxContainer = %SupplierList
 @onready var role_list: VBoxContainer = %RoleList
-@onready var add_role_button: Button = %AddRoleButton
+@onready var manage_role_button: Button = %ManageRoleButton
 @onready var supplier_option_button: Button = %SupplierOptionButton
 @onready var supplier_option_window: Window = $SupplierOptionWindow
 
 const SUPPLIER_ITEM = preload("uid://cktcl3yjma34l")
 const SETTING_ROLE_ITEM = preload("uid://dwlfm5aqjw7f4")
 const EDIT_ROLE_WINDOW = preload("uid://cx0yeuxsc2kui")
+const ROLE_OPTION_WINDOW = preload("uid://dma1q8o2by3nq")
 
 # 添加新节点后需要在这里注册
 @onready var setting_item_nodes = [
@@ -32,18 +33,17 @@ const EDIT_ROLE_WINDOW = preload("uid://cx0yeuxsc2kui")
 
 signal config_model
 var suppliers: Array[AgentSupplierItem] = []
+var _initialized: bool = false
 
 func _ready() -> void:
 	await owner.ready
 	#print("settings ready")
-	init_item_values()
+	#init_item_values()
 	supplier_option_button.pressed.connect(show_supplier_option_window)
-	init_signals()
+	#init_signals()
 	add_supplier_button.pressed.connect(on_click_add_supplier_button)
-	init_models_supplier()
-	init_roles()
 	visibility_changed.connect(_on_show_setting)
-	add_role_button.pressed.connect(on_click_add_role_button)
+	manage_role_button.pressed.connect(on_click_manage_role_button)
 	supplier_option_window.close_requested.connect(supplier_option_window.hide)
 
 	# 连接角色变更信号
@@ -79,43 +79,22 @@ func init_models_supplier():
 
 func _on_show_setting():
 	if visible:
+		if not _initialized:
+			_initialized = true
+			init_item_values()
+			init_signals()
+			init_models_supplier()
 		for supplier in suppliers:
 			supplier.update_current_model()
-		# 刷新角色列表
-		refresh_roles()
-
-func init_roles():
-	# 等待 role_manager 初始化完成
-	var max_wait_frames = 10
-	var wait_count = 0
-	while AlphaAgentPlugin.global_setting.role_manager == null and wait_count < max_wait_frames:
-		await get_tree().process_frame
-		wait_count += 1
-	refresh_roles()
 
 func refresh_roles():
-	var role_manager = AlphaAgentPlugin.global_setting.role_manager
-	if role_manager == null:
-		return
+		pass
 
-	for role in role_list.get_children():
-		if role is AgentSettingRoleItem:
-			role.queue_free()
+func on_click_manage_role_button():
+		var role_window = ROLE_OPTION_WINDOW.instantiate() as AgentRoleOptionWindow
+		get_tree().root.add_child(role_window)
+		role_window.popup_centered(Vector2i(800, 600))
 
-	for role in role_manager.roles:
-		var new_role := SETTING_ROLE_ITEM.instantiate() as AgentSettingRoleItem
-		role_list.add_child(new_role)
-		new_role.call_deferred("set_role_info", role)
-
-func on_click_add_role_button():
-	var edit_role_window := EDIT_ROLE_WINDOW.instantiate() as AgentEditRoleWindow
-	get_tree().root.add_child(edit_role_window)
-	edit_role_window.set_role_info(AgentRoleConfig.RoleInfo.new())
-	edit_role_window.popup_centered()
-	edit_role_window.title = "添加角色"
-	edit_role_window.edit_role_node = null
-	edit_role_window.set_window_mode(AgentEditRoleWindow.WindowMode.Create)
-	edit_role_window.created.connect(on_create_role_window_created, CONNECT_ONE_SHOT)
 
 func on_create_role_window_created(role_info: AgentRoleConfig.RoleInfo):
 	var new_role := SETTING_ROLE_ITEM.instantiate() as AgentSettingRoleItem

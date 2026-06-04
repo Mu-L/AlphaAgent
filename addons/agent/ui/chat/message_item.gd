@@ -64,6 +64,7 @@ func _ready() -> void:
 	expand_button.button_pressed = auto_expand_think
 	set_expand_icon_flip(auto_expand_think)
 	think_content_panel.visible = auto_expand_think
+	set_process(false)
 
 func _process(delta: float) -> void:
 	if thinking:
@@ -77,6 +78,8 @@ func update_think_content(text: String, start_timer: bool = true):
 		return
 
 	thinking = start_timer
+	if start_timer and show_think:
+		set_process(true)
 	think_container.show()
 	# 去除首尾空白和换行，避免RichTextLabel渲染出过大高度
 	think_content.text = text.strip_edges()
@@ -86,6 +89,7 @@ func update_think_content(text: String, start_timer: bool = true):
 func update_message_content(text: String):
 	message_type = MessageType.AssistantMessage
 	thinking = false
+	set_process(false)
 	if show_think:
 		thinking_label.text = "思考了"
 	# 去除首尾空白和换行，避免RichTextLabel渲染出过大高度
@@ -122,6 +126,7 @@ func used_tools(tool_calls: Array):
 	message_type = MessageType.ToolMessage
 	wait_using_tool.hide()
 	thinking = false
+	set_process(false)
 	for tool in tool_calls:
 		var use_tool_item = USE_TOOL_ITEM.instantiate()
 		use_tool_container.add_child(use_tool_item)
@@ -149,6 +154,7 @@ func on_click_rich_text_url(meta):
 func update_error_message(error_content: String, detail):
 	message_type = MessageType.ErrorMessage
 	thinking = false
+	set_process(false)
 	use_tool_container.hide()
 	wait_using_tool.hide()
 	think_content_panel.hide()
@@ -164,6 +170,8 @@ func update_finished_message(type: String):
 	if type == "Stop":
 		stop_message.show()
 		thinking = false
+		set_process(false)
 	elif type == "Success":
 		success_message.show()
 		thinking = false
+		set_process(false)

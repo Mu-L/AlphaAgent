@@ -38,6 +38,9 @@ var menu_list_type: MenuListType = MenuListType.None
 var _cached_file_list: Array = []         # 文件列表缓存
 var _cached_file_list_valid: bool = false # 缓存是否有效
 
+var _clamp_scheduled: bool = false          # 延迟合并高度重算
+var _last_menu_search: String = ""          # 上次菜单搜索词，避免重复过滤
+
 var command_list = [
 	{
 		"command": "/memory",
@@ -412,7 +415,23 @@ func check_disallowed_char(text: String) -> bool:
 
 func on_user_input_text_changed():
 	var text = user_input.text
-	_clamp_input_height()
+	_schedule_clamp()
+
+	# 提取搜索前缀，避免每次按键都重新过滤
+	var search_prefix = ""
+	if "@" in text:
+		var at_idx = text.rfind("@")
+		var space_after_at = text.find(" ", at_idx)
+		if space_after_at < 0:
+			space_after_at = text.length()
+		search_prefix = text.substr(at_idx, space_after_at - at_idx)
+	elif text.begins_with("/") and check_disallowed_char(text):
+		search_prefix = text
+
+	# 搜索词未变则跳过，减少不必要的 UI 刷新
+	if search_prefix == _last_menu_search:
+		return
+	_last_menu_search = search_prefix
 
 	# 检测 @ 触发文件列表
 	if "@" in text:
@@ -464,9 +483,14 @@ func on_user_input_text_changed():
 		menu_list_type = MenuListType.None
 		input_menu_list.hide()
 		input_menu_list.clear()
-
 ## 限制输入框最大高度，超出后内部滚动
-func _clamp_input_height():
+func _schedule_clamp():
+	if not _clamp_scheduled:
+		_clamp_scheduled = true
+		call_deferred("_do_clamp_input_height")
+
+func _do_clamp_input_height():
+	_clamp_scheduled = false
 	const MAX_HEIGHT := 200.0
 	const MIN_HEIGHT := 60.0
 

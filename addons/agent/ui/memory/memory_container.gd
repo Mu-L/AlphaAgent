@@ -13,14 +13,17 @@ extends VBoxContainer
 const MEMORY_ITEM = preload("uid://cr2sav6by4tal")
 const CONFIG = preload("uid://b4bcww0bmnxt0")
 
+var _initialized: bool = false
 func _ready() -> void:
-	load_from_project()
 	visibility_changed.connect(on_visibility_changed)
 	add_global_memory.pressed.connect(on_add_global_memory)
 	add_project_memory.pressed.connect(on_add_project_memory)
 
 func on_visibility_changed():
 	if visible:
+		if not _initialized:
+			_initialized = true
+			load_from_project()
 		clear_memory_nodes()
 		add_memory_nodes()
 	else:

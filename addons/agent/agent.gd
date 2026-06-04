@@ -131,9 +131,10 @@ class GlobalSetting:
 		# 初始化角色管理器
 		role_manager = AgentRoleConfig.RoleManager.new(roles_file)
 
-		# 如果没有角色，添加默认角色（需要 await 等待工具列表加载）
+		# 如果没有角色，等待一帧确保工具列表就绪后创建默认角色
 		if role_manager.roles.is_empty():
-			await role_manager.add_default_roles()
+			await AlphaAgentPlugin.wait_for_scene_tree_frame()
+			role_manager.add_default_roles()
 
 		# 初始化技能管理器
 		skill_manager = AgentSkillConfig.SkillManager.new(skill_directory)
