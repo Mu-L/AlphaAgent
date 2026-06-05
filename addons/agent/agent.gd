@@ -50,12 +50,12 @@ func _exit_tree() -> void:
 
 func print_greetings():
 	print_alpha_message("==$==*----*===*----*===*----*==$==")
-	print_alpha_message("""    ___     __        __
-   /   |   / /____   / /_   ____ _
-  / /| |  / // __ \\ / __ \\ / __ `/
- / ___ | / // /_/ // / / // /_/ /
-/_/  |_|/_// .___//_/ /_/ \\__,_/
-		  /_/""")
+	print_alpha_message("    ___     __        __")
+	print_alpha_message("   /   |   / /____   / /_   ____ _")
+	print_alpha_message("  / /| |  / // __ \\ / __ \\ / __ `/")
+	print_alpha_message(" / ___ | / // /_/ // / / // /_/ /")
+	print_alpha_message("/_/  |_|/_// .___//_/ /_/ \\__,_/")
+	print_alpha_message("		   /_/")
 	print_alpha_message("==$==*----*===*----*===*----*==$==")
 	print_alpha_message("初始化插件中...")
 
