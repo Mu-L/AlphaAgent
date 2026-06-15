@@ -137,7 +137,9 @@ func update_model_selector(suppliers: Array, current_model_id: String, current_m
 		# 设置当前选中的模型
 		if not model_id_list.has(current_idx):
 			current_idx = first_model_idx
+		model_button.set_block_signals(true)
 		model_button.selected = current_idx
+		model_button.set_block_signals(false)
 		if current_idx != -1:
 			_on_model_selected(current_idx)
 

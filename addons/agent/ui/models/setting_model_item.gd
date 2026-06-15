@@ -27,7 +27,9 @@ func set_setting_model_info(model: ModelConfig.ModelInfo):
 	model_id.text = model_info.model_name
 	support_reasoner.visible = model_info.supports_thinking
 	support_tool.visible = model_info.supports_tools
+	is_active.set_block_signals(true)
 	is_active.button_pressed = model_info.active
+	is_active.set_block_signals(false)
 
 func on_toggled_is_active_button(toggled_on: bool):
 	model_info.active = toggled_on

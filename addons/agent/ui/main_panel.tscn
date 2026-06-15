@@ -427,7 +427,7 @@ size_flags_vertical = 4
 tooltip_text = "打开Alpha官网"
 text = "Alpha官网"
 underline = 1
-uri = "https://godotvillage.github.io/alpha/"
+uri = "https://godotvillage.com/#/project/8665befd-9b55-46dd-9126-5d9bffdbc006"
 
 [node name="Tools" parent="." instance=ExtResource("3_2usmi")]
 

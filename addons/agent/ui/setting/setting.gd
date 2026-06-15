@@ -33,10 +33,10 @@ const ROLE_OPTION_WINDOW = preload("uid://dma1q8o2by3nq")
 
 signal config_model
 var suppliers: Array[AgentSupplierItem] = []
-var _initialized: bool = false
+var _did_init: bool = false
+var _setting_ready_connected: bool = false
 
 func _ready() -> void:
-	await owner.ready
 	#print("settings ready")
 	#init_item_values()
 	supplier_option_button.pressed.connect(show_supplier_option_window)
@@ -49,6 +49,13 @@ func _ready() -> void:
 	# 连接角色变更信号
 	var singleton = AlphaAgentSingleton.get_instance()
 	singleton.roles_changed.connect(refresh_roles)
+
+	# 等待 setting_ready 后执行一次性初始化
+	if AlphaAgentPlugin.global_setting.setting_is_ready:
+		_try_init()
+	elif not _setting_ready_connected:
+		_setting_ready_connected = true
+		AlphaAgentPlugin.global_setting.setting_ready.connect(_try_init, CONNECT_ONE_SHOT)
 
 func init_item_values():
 	for setting_item in setting_item_nodes:
@@ -77,13 +84,19 @@ func init_models_supplier():
 	supplier_option_window.init_models_supplier()
 	pass
 
+func _try_init():
+	if _did_init:
+		return
+	if not AlphaAgentPlugin.global_setting.setting_is_ready:
+		return
+	_did_init = true
+	init_item_values()
+	init_signals()
+	init_models_supplier()
+
 func _on_show_setting():
 	if visible:
-		if not _initialized:
-			_initialized = true
-			init_item_values()
-			init_signals()
-			init_models_supplier()
+		_try_init()
 		for supplier in suppliers:
 			supplier.update_current_model()
 

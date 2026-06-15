@@ -3,4 +3,4 @@
 /android/
 .trae/rules
 .vscode/
-test/
+test/.reasonix/

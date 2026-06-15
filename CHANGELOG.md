@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.5.0] - 2026-06-05
+## [0.5.0] - 2026-06-15
 
 ### ✨ New Features (新增功能)
 - **供应商与模型**:
@@ -25,14 +25,21 @@ All notable changes to this project will be documented in this file.
 - **性能优化**:
   - 设置页、技能页、记忆页改为首次可见时才初始化，减少插件启动时的加载压力。
   - message_item._process 改为按需启停，空闲时不再每帧运行。
+- **Tools**:
+  - set_singleton 新增 class_name 冲突检测和 extends Node 校验。
 
 ### 🐛 Bug Fixes (问题修复)
+- 修复插件加载后编辑器持续卡顿（消除 while 轮询和信号递归死循环）。
+- 修复模型开关触发 signal → update_model_selector 递归死循环导致卡死。
+- 修复记忆面板首次切换无内容。
+- 修复插件重新启用时 setting_ready 标志残留导致面板跳过初始化。
 - 修复 CheckScriptError 工具在脚本含有 `class_name` 定义时静态检查始终失败的问题。([#9](https://github.com/925236118/AlphaAgent/pull/9))
 - 优化标题生成逻辑和思考内容展示。
 - 修复 Anthropic 兼容 API 适配问题。
 - 限制输入框最大高度，防止内容过多撑破 UI 布局。
 
 ### 🔧 Improvements (优化改进)
+- 统一初始化时序：新增 setting_ready 信号，所有面板通过信号等待 manager 就绪。
 - 修改代码文件层级，优化项目结构。
 - 清理 OpenAI 聊天包装器中耦合的 DeepSeek 特殊处理逻辑。
 

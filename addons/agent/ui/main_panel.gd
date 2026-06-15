@@ -86,11 +86,11 @@ func _ready() -> void:
 	welcome_message.show()
 	message_container.hide()
 
-	# 初始化模型选择
-	_init_model_selector()
-
-	# 初始化角色选择
-	_init_role_selector()
+	# 初始化模型选择和角色选择（等待 setting_ready）
+	if AlphaAgentPlugin.global_setting.setting_is_ready:
+		_on_setting_ready()
+	else:
+		AlphaAgentPlugin.global_setting.setting_ready.connect(_on_setting_ready, CONNECT_ONE_SHOT)
 	_bind_message_scroll_events()
 
 	back_chat_button.pressed.connect(on_click_back_chat_button)
@@ -119,9 +119,12 @@ func _connect_plugin_signals():
 	singleton.models_changed.connect(_on_models_changed)
 	singleton.roles_changed.connect(_on_roles_changed)
 
+func _on_setting_ready():
+	_init_model_selector()
+	_init_role_selector()
+
 # 初始化模型选择器
 func _init_model_selector():
-	await AlphaAgentPlugin.wait_for_scene_tree_frame()
 	var model_manager = AlphaAgentPlugin.global_setting.model_manager
 	if model_manager == null:
 		return
@@ -137,7 +140,6 @@ func _init_model_selector():
 	)
 
 func _init_role_selector():
-	await AlphaAgentPlugin.wait_for_scene_tree_frame()
 	var role_manager = AlphaAgentPlugin.global_setting.role_manager
 	if role_manager == null:
 		return
@@ -154,6 +156,10 @@ func _on_model_selected(supplier_id: String, model_id: String):
 	if model_manager == null:
 		return
 
+	# 模型未变则跳过，打断 signal → update_model_selector → _on_model_selected 递归链
+	if model_manager.current_supplier_id == supplier_id and model_manager.current_model_id == model_id:
+		return
+
 	model_manager.set_current_model(supplier_id, model_id)
 
 	# 更新输入容器的模型选择器显示
@@ -165,6 +171,7 @@ func _on_models_changed():
 
 func _on_roles_changed():
 	_init_role_selector()
+
 
 func reset_message_info():
 	current_message_item = null

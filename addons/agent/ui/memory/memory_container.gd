@@ -13,27 +13,41 @@ extends VBoxContainer
 const MEMORY_ITEM = preload("uid://cr2sav6by4tal")
 const CONFIG = preload("uid://b4bcww0bmnxt0")
 
-var _initialized: bool = false
+var _did_load: bool = false
+var _setting_ready_connected: bool = false
 func _ready() -> void:
 	visibility_changed.connect(on_visibility_changed)
 	add_global_memory.pressed.connect(on_add_global_memory)
 	add_project_memory.pressed.connect(on_add_project_memory)
 
+	# 等待 setting_ready 后再加载和渲染记忆
+	if not _setting_ready_connected:
+		_setting_ready_connected = true
+		AlphaAgentPlugin.global_setting.setting_ready.connect(_on_setting_ready, CONNECT_ONE_SHOT)
+
+func _on_setting_ready():
+	if visible:
+		_try_render()
+
+func _try_render():
+	if not AlphaAgentPlugin.global_setting.setting_is_ready:
+		return
+	if not _did_load:
+		_did_load = true
+		load_from_project()
+		load_from_global()
+	clear_memory_nodes()
+	add_memory_nodes()
+
 func on_visibility_changed():
 	if visible:
-		if not _initialized:
-			_initialized = true
-			load_from_project()
-		clear_memory_nodes()
-		add_memory_nodes()
+		_try_render()
 	else:
 		clear_memory_nodes()
 
 func load_from_project():
 	var CONFIG := load("uid://b4bcww0bmnxt0") as AgentConfig
-	var memory = CONFIG.memory
-	await get_tree().physics_frame
-	AlphaAgentPlugin.project_memory = memory
+	AlphaAgentPlugin.project_memory = CONFIG.memory
 
 func load_from_global():
 	var memory_string = FileAccess.get_file_as_string(global_memory_file)
@@ -44,8 +58,7 @@ func load_from_global():
 	if memory_string != "":
 		json = JSON.parse_string(memory_string)
 
-	await get_tree().physics_frame
-	AlphaAgentPlugin.global_memory = json as Array[String]
+	AlphaAgentPlugin.global_memory.assign(json)
 
 func add_memory_nodes():
 	for i in AlphaAgentPlugin.global_memory.size():

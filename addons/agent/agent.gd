@@ -14,6 +14,9 @@ func _disable_plugin() -> void:
 	pass
 
 func _enter_tree() -> void:
+	# 每次启用插件时复位就绪标志，确保面板通过信号等待新的 load_global_setting 完成
+	global_setting.setting_is_ready = false
+
 	print_greetings()
 
 	# 初始化临时文件管理器
@@ -33,7 +36,7 @@ func _enter_tree() -> void:
 	# 所有初始化完成后打印结束语
 	print_alpha_message("==$==*----*===*----*===*----*==$==")
 	print_alpha_message("初始化结束，欢迎使用 [b]Alpha[/b]，始于初心，无限可能。")
-	print_alpha_message("更多详细信息请查看：[url href='https://godotvillage.github.io/alpha/']Alpha 官方网站[/url]")
+	print_alpha_message("更多详细信息请查看：[url href='https://godotvillage.com/#/project/8665befd-9b55-46dd-9126-5d9bffdbc006']Alpha 官方网站[/url]")
 
 
 func _exit_tree() -> void:
@@ -69,6 +72,9 @@ enum SendShotcut {
 }
 
 class GlobalSetting:
+	signal setting_ready
+	var setting_is_ready: bool = false
+
 	var setting_dir = ""
 
 	var setting_file: String = ""
@@ -138,6 +144,9 @@ class GlobalSetting:
 
 		# 初始化技能管理器
 		skill_manager = AgentSkillConfig.SkillManager.new(skill_directory)
+
+		setting_is_ready = true
+		setting_ready.emit()
 
 	func save_global_setting():
 		var dict = {

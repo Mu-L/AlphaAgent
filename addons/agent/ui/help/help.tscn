@@ -45,10 +45,9 @@ vertical_alignment = 1
 [node name="TabContainer" type="TabContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-current_tab = 4
+current_tab = 0
 
 [node name="设计哲学" type="ScrollContainer" parent="MarginContainer/VBoxContainer/TabContainer"]
-visible = false
 layout_mode = 2
 size_flags_vertical = 3
 metadata/_tab_index = 0
@@ -218,6 +217,7 @@ text = "Alpha有可以记录用户输入的记忆的功能。
 fit_content = true
 
 [node name="关于" type="ScrollContainer" parent="MarginContainer/VBoxContainer/TabContainer"]
+visible = false
 layout_mode = 2
 size_flags_vertical = 3
 metadata/_tab_index = 4
@@ -259,5 +259,7 @@ Jaxson（1253318213）
 PR贡献者：
 [ul]
 TonyZhao（https://github.com/tonyzhao-jt）
+Smalldy（https://github.com/Smalldy）
+TsubakiLoL（https://github.com/TsubakiLoL）
 [/ul]"
 fit_content = true

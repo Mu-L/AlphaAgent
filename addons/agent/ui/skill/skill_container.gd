@@ -18,6 +18,7 @@ extends VBoxContainer
 const SKILL_ITEM = preload("uid://dkic1ui7mmhyy")
 
 var edited_skill = null
+var _setting_ready_connected: bool = false
 
 func _ready() -> void:
 	visibility_changed.connect(on_visibility_changed)
@@ -26,10 +27,24 @@ func _ready() -> void:
 	cancel_button.pressed.connect(on_cancel_button_pressed)
 	open_skill_dir_button.pressed.connect(on_open_skill_dir_button_pressed)
 
+	# 等待 setting_ready 后再渲染技能列表
+	if not _setting_ready_connected:
+		_setting_ready_connected = true
+		AlphaAgentPlugin.global_setting.setting_ready.connect(_on_setting_ready, CONNECT_ONE_SHOT)
+
+func _on_setting_ready():
+	if visible:
+		_try_render()
+
+func _try_render():
+	if not AlphaAgentPlugin.global_setting.setting_is_ready:
+		return
+	clear_skill_nodes()
+	add_skill_nodes()
+
 func on_visibility_changed():
 	if visible:
-		clear_skill_nodes()
-		add_skill_nodes()
+		_try_render()
 		skill_list_container.show()
 		skill_edit_container.hide()
 	else:
@@ -41,13 +56,6 @@ func clear_skill_nodes():
 
 
 func add_skill_nodes():
-	# 等待 skill_manager 初始化完成
-	var max_wait_frames = 10
-	var wait_count = 0
-	while AlphaAgentPlugin.global_setting.skill_manager == null and wait_count < max_wait_frames:
-		await get_tree().process_frame
-		wait_count += 1
-
 	var skill_manager = AlphaAgentPlugin.global_setting.skill_manager
 	if skill_manager == null:
 		return
