@@ -4,6 +4,7 @@ extends MarginContainer
 
 @onready var content_container: VBoxContainer = %ContentContainer
 @onready var think_container: VBoxContainer = %ThinkContainer
+@onready var think_content_panel: PanelContainer = %ThinkContentPanel
 @onready var think_content: RichTextLabel = %ThinkContent
 @onready var message_container: VBoxContainer = %MessageContainer
 @onready var message_content: RichTextLabel = %MessageContent
@@ -62,7 +63,8 @@ func _ready() -> void:
 	var auto_expand_think = AlphaAgentPlugin.global_setting.auto_expand_think
 	expand_button.button_pressed = auto_expand_think
 	set_expand_icon_flip(auto_expand_think)
-	think_content.visible = auto_expand_think
+	think_content_panel.visible = auto_expand_think
+	set_process(false)
 
 func _process(delta: float) -> void:
 	if thinking:
@@ -76,17 +78,22 @@ func update_think_content(text: String, start_timer: bool = true):
 		return
 
 	thinking = start_timer
+	if start_timer and show_think:
+		set_process(true)
 	think_container.show()
-	think_content.text = text
+	# 去除首尾空白和换行，避免RichTextLabel渲染出过大高度
+	think_content.text = text.strip_edges()
 	if not thinking:
 		thinking_label.text = "思考了"
 
 func update_message_content(text: String):
 	message_type = MessageType.AssistantMessage
 	thinking = false
+	set_process(false)
 	if show_think:
 		thinking_label.text = "思考了"
-	message_content.text = text
+	# 去除首尾空白和换行，避免RichTextLabel渲染出过大高度
+	message_content.text = text.strip_edges()
 	if message_content.text.trim_prefix(" ") != "":
 		message_container.show()
 		message_content.show()
@@ -100,7 +107,7 @@ func update_user_message_content(text: String):
 func _on_expand_button_toggled(toggled_on: bool) -> void:
 	#expand_button.text = " ▲ " if toggled_on else " ▼ "
 	set_expand_icon_flip(toggled_on)
-	think_content.visible = toggled_on
+	think_content_panel.visible = toggled_on
 
 func set_expand_icon_flip(val: bool):
 	expand_icon.flip_v = val
@@ -118,6 +125,8 @@ func response_use_tool():
 func used_tools(tool_calls: Array):
 	message_type = MessageType.ToolMessage
 	wait_using_tool.hide()
+	thinking = false
+	set_process(false)
 	for tool in tool_calls:
 		var use_tool_item = USE_TOOL_ITEM.instantiate()
 		use_tool_container.add_child(use_tool_item)
@@ -142,23 +151,27 @@ func on_click_rich_text_url(meta):
 	else:
 		print("不支持的跳转方式，您可以复制链接后自行跳转： ", meta)
 
-func update_error_message(error_content: String, detail: String):
+func update_error_message(error_content: String, detail):
 	message_type = MessageType.ErrorMessage
 	thinking = false
+	set_process(false)
 	use_tool_container.hide()
 	wait_using_tool.hide()
-	think_content.hide()
+	think_content_panel.hide()
 	message_container.hide()
 	user_message_container.hide()
 
 	error_message_container.show()
-	error_message_label.text = "[color=red]错误：" + error_content + "[/color]\n" + detail
+	var detail_text := JSON.stringify(detail) if detail is Dictionary else str(detail)
+	error_message_label.text = "[color=red]错误：" + error_content + "[/color]\n" + detail_text
 
 func update_finished_message(type: String):
 	finish_message.show()
 	if type == "Stop":
 		stop_message.show()
 		thinking = false
+		set_process(false)
 	elif type == "Success":
 		success_message.show()
 		thinking = false
+		set_process(false)

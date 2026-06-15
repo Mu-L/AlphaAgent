@@ -1,16 +1,16 @@
 @tool
-class_name OpenAIChatStream
+class_name MiniMaxChatStream
 extends Node
 
-## 通用的OpenAI规范流式聊天客户端，支持所有兼容OpenAI API的服务
+## MiniMax OpenAI兼容模式流式聊天客户端
 
 ## API基础URL
-@export var api_base: String = "https://api.openai.com"
+@export var api_base: String = "https://api.minimaxi.com/v1"
 ## API密钥
 @export var secret_key: String = ''
 ## 模型名称
-@export var model_name: String = "gpt-3.5-turbo"
-## 是否使用深度思考（DeepSeek专用）
+@export var model_name: String = "MiniMax-M2.5"
+## 是否使用深度思考
 @export var use_thinking: bool = false
 ## 温度值，越高输出越随机，默认为1
 @export_range(0.0, 2.0, 0.1) var temperature: float = 1.0
@@ -24,12 +24,10 @@ extends Node
 @export var print_log: bool = false
 ## 可以供模型调用的工具
 @export var tools: Array = []
-## 提供商类型（用于特殊处理）
-@export var provider: String = "openai"
 
 ## 返回正文
 signal message(msg: String)
-## 返回思考内容（DeepSeek专用）
+## 返回思考内容
 signal think(msg: String)
 ## 返回结束
 signal generate_finish(finish_reason: String, total_tokens: float)
@@ -53,14 +51,12 @@ func post_message(messages: Array[Dictionary]):
 	AgentModelUtils.apply_proxy_to_http_client(http_client)
 	if print_log: print("请求消息列表: ", messages)
 
-	# 准备请求头
 	var headers = [
 		"Accept: application/json",
 		"Authorization: Bearer %s" % secret_key,
 		"Content-Type: application/json"
 	]
 
-	# 准备请求体
 	var request_data = {
 		"messages": messages,
 		"model": model_name,
@@ -72,6 +68,9 @@ func post_message(messages: Array[Dictionary]):
 		"top_p": 1,
 	}
 
+	if use_thinking:
+		request_data["reasoning_split"] = true
+
 	if tools.size() > 0:
 		request_data["tools"] = tools
 
@@ -79,7 +78,6 @@ func post_message(messages: Array[Dictionary]):
 
 	if print_log: print("请求消息数据体: ", request_body)
 
-	# 解析API URL
 	var url_parts = api_base.replace("https://", "").replace("http://", "").split("/", false, 1)
 	var host = url_parts[0]
 	var use_tls = api_base.begins_with("https://")
@@ -93,7 +91,6 @@ func post_message(messages: Array[Dictionary]):
 		})
 		return
 
-	# 等待连接
 	while http_client.get_status() == HTTPClient.STATUS_CONNECTING or \
 		  http_client.get_status() == HTTPClient.STATUS_RESOLVING:
 		http_client.poll()
@@ -106,27 +103,17 @@ func post_message(messages: Array[Dictionary]):
 		})
 		return
 
-	# 发送请求
 	var path = "/v1/chat/completions"
 	if url_parts.size() > 1 and url_parts[1] != "":
-		# 如果API base包含路径，则拼接路径
 		var base_path = "/" + url_parts[1]
-		# 移除末尾的斜杠
 		if base_path.ends_with("/"):
 			base_path = base_path.substr(0, base_path.length() - 1)
 
-		# 检查路径情况 - 按照优先级从具体到一般
 		if base_path.ends_with("/chat/completions"):
-			# 已经是完整路径（如豆包：/api/v3/chat/completions）
 			path = base_path
-		elif base_path.ends_with("/v3"):
-			# 豆包等使用 v3，只添加 /chat/completions
-			path = base_path + "/chat/completions"
 		elif base_path.ends_with("/v1"):
-			# 标准 OpenAI，只添加 /chat/completions
 			path = base_path + "/chat/completions"
 		else:
-			# 默认添加完整的 /v1/chat/completions
 			path = base_path + "/v1/chat/completions"
 
 	if print_log:
@@ -144,7 +131,6 @@ func post_message(messages: Array[Dictionary]):
 
 	generatting = true
 
-	# 等待响应
 	while http_client.get_status() == HTTPClient.STATUS_REQUESTING:
 		http_client.poll()
 		await get_tree().process_frame
@@ -158,7 +144,6 @@ func post_message(messages: Array[Dictionary]):
 		generatting = false
 		return
 
-	# 检查响应码
 	if http_client.get_response_code() != 200:
 		var body_chunks = PackedByteArray()
 		while http_client.get_status() == HTTPClient.STATUS_BODY:
@@ -176,7 +161,6 @@ func post_message(messages: Array[Dictionary]):
 		generatting = false
 		return
 
-	# 读取流式响应
 	var buffer = PackedByteArray()
 	while http_client.get_status() == HTTPClient.STATUS_BODY:
 		http_client.poll()
@@ -196,33 +180,26 @@ func _process_buffer(buffer: PackedByteArray):
 	for i in range(lines.size() - 1):
 		var line = lines[i].strip_edges()
 
-		# 处理 [DONE] 标记
 		if line == "[DONE]" or line == "data: [DONE]":
 			continue
 
 		var data_str = ""
 
-		# 检查是否有 "data: " 前缀（标准 OpenAI 格式）
 		if line.begins_with("data: "):
 			data_str = line.substr(6).strip_edges()
-		# 如果没有前缀，直接尝试解析（豆包等格式）
 		elif line.begins_with("{"):
 			data_str = line
 		else:
-			# 跳过空行或其他无效行
 			continue
 
-		# 跳过空行或不完整的数据
 		if data_str.is_empty():
 			continue
 
-		# 必须以 { 开头（确保是完整的 JSON 对象）
 		if not data_str.begins_with("{"):
 			if print_log and data_str.length() > 0:
 				print("跳过非JSON数据: ", data_str.substr(0, 50))
 			continue
 
-		# 验证 JSON 是否完整（简单检查括号平衡）
 		if not _is_valid_json_string(data_str):
 			if print_log:
 				print("跳过不完整的JSON: ", data_str.substr(0, 50))
@@ -234,7 +211,6 @@ func _process_buffer(buffer: PackedByteArray):
 		elif print_log:
 			print("JSON解析失败或格式错误: ", data_str.substr(0, 100))
 
-	# 保留最后一行（可能不完整）
 	if lines.size() > 0:
 		buffer.clear()
 		buffer.append_array(lines[-1].to_utf8_buffer())
@@ -291,25 +267,29 @@ func _process_chunk(data: Dictionary):
 	var delta = choice.get("delta", {})
 	var finish_reason = choice.get("finish_reason", null)
 
-	# 处理思考内容（支持 reasoning_content 的提供商，如 SiliconFlow）
-	if delta.has("reasoning_content") and delta["reasoning_content"] != null:
+	# MiniMax 通过 reasoning_details 返回思考内容（每个 chunk 的 text 就是增量）
+	if delta.has("reasoning_details") and delta["reasoning_details"] is Array:
+		for detail in delta["reasoning_details"]:
+			if detail is Dictionary and detail.has("text"):
+				var text_part: String = detail["text"]
+				if not text_part.is_empty():
+					think.emit(text_part)
+	elif delta.has("reasoning_content") and delta["reasoning_content"] != null:
+		# 兼容 reasoning_content（其他 OpenAI 兼容提供商格式）
 		think.emit(delta["reasoning_content"])
 
-	# 处理普通消息
 	if delta.has("content") and delta["content"] != null:
 		message.emit(delta["content"])
 
-	# 处理工具调用
 	if delta.has("tool_calls"):
 		_process_tool_calls(delta["tool_calls"])
 
-	# 处理结束
 	if finish_reason != null:
 		if finish_reason == "tool_calls":
 			use_tool.emit(tool_calls)
 
 		var total_tokens = 0
-		if data.has("usage"):
+		if data.has("usage") and data["usage"] is Dictionary:
 			total_tokens = data["usage"].get("total_tokens", 0)
 
 		generate_finish.emit(finish_reason, total_tokens)
@@ -321,7 +301,6 @@ func _process_tool_calls(tool_calls_data: Array):
 	for tool_call_data in tool_calls_data:
 		var index = tool_call_data.get("index", 0)
 
-		# 确保有足够的tool_calls槽位
 		while tool_calls.size() <= index:
 			tool_calls.append(AgentModelUtils.ToolCallsInfo.new())
 

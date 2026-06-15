@@ -35,7 +35,12 @@ func _on_delete_button_mouse_entered() -> void:
 
 func set_title(title: String):
 	if history_message_title:
-		history_message_title.text = title
+		# 替换换行符为空格，避免多行显示
+		var clean_title = title.replace("\n", " ").replace("\r", " ")
+		# 如果标题过长，截断显示
+		if clean_title.length() > 20:
+			clean_title = clean_title.substr(0, 20) + "..."
+		history_message_title.text = clean_title
 
 func set_time(time: String):
 	if history_message_time:

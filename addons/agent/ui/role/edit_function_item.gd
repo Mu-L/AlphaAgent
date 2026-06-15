@@ -31,5 +31,8 @@ func set_active(_active: bool):
 	active_icon.visible = active
 	disactive_icon.visible = not active
 
+func set_disabled(disabled: bool):
+	fucntion_active_button.disabled = disabled
+
 func on_click_function_active_button():
 	set_active(not active)

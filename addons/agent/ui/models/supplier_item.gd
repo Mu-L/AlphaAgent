@@ -44,6 +44,10 @@ const MINIMAX_PROVIDER_TIPS := """[b]说明[/b]：
 MiniMax 支持充值账户和使用 Coding Plan 的账户。
 [b]提示[/b]：当前无法获取模型列表，可直接在对话中使用。"""
 
+const ANTHROPIC_PROVIDER_TIPS := """[b]说明[/b]：
+Anthropic支持所有兼容接口。
+[b]提示[/b]：建议 API Base 使用 https://api.anthropic.com。"""
+
 signal save
 signal remove
 
@@ -71,6 +75,10 @@ const ProviderConfig = [
 	{
 		"name": "Ollama",
 		"provider": "ollama"
+	},
+	{
+		"name": "Anthropic",
+		"provider": "anthropic"
 	}
 ]
 
@@ -202,6 +210,9 @@ func _update_supplier_api_type_tips():
 		"gemini":
 			supplier_api_type_tips.visible = true
 			supplier_api_type_tips.text = GEMINI_PROVIDER_TIPS
+		"anthropic":
+			supplier_api_type_tips.visible = true
+			supplier_api_type_tips.text = ANTHROPIC_PROVIDER_TIPS
 		_:
 			supplier_api_type_tips.visible = false
 
@@ -239,6 +250,8 @@ func _get_provider_home_page_url(provider: String, current_name: String, current
 			return "https://www.deepseek.com/"
 		"ollama":
 			return "https://ollama.com/"
+		"anthropic":
+			return "https://console.anthropic.com/"
 		_:
 			return ""
 
@@ -263,6 +276,9 @@ func _update_default_api_base(provider_index: int):
 			supplier_base_url.text = "http://localhost:11434"
 			supplier_secret_key.text = ""
 			supplier_secret_key.placeholder_text = "Ollama 不需要 API Key"
+		6: # Anthropic
+			supplier_base_url.text = "https://api.anthropic.com"
+			supplier_secret_key.placeholder_text = "输入 Anthropic API Key"
 
 func update_current_model():
 	if supplier_info.id == AlphaAgentPlugin.global_setting.model_manager.current_supplier_id:
@@ -301,6 +317,13 @@ func on_check_model_button_click():
 				check_url = base + "/models"
 			else:
 				check_url = base + "/v1beta/models"
+		"anthropic":
+			headers.append("x-api-key: %s" % supplier_secret_key.text)
+			headers.append("anthropic-version: 2023-06-01")
+			if base.ends_with("/v1"):
+				check_url = base + "/models"
+			else:
+				check_url = base + "/v1/models"
 		"ollama":
 			check_url = base + "/api/tags"
 		_:

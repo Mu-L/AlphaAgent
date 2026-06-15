@@ -128,7 +128,6 @@ layout_mode = 2
 texture = ExtResource("2_rqoyl")
 expand_mode = 1
 stretch_mode = 5
-flip_v = true
 
 [node name="ExpandButton" type="Button" parent="VBoxContainer/ContentContainer/ThinkContainer/ThinkTimePanel"]
 unique_name_in_owner = true
@@ -137,14 +136,15 @@ tooltip_text = "展开"
 mouse_default_cursor_shape = 2
 theme_override_styles/focus = SubResource("StyleBoxEmpty_nnls0")
 toggle_mode = true
-button_pressed = true
 flat = true
 
-[node name="PanelContainer" type="PanelContainer" parent="VBoxContainer/ContentContainer/ThinkContainer"]
+[node name="ThinkContentPanel" type="PanelContainer" parent="VBoxContainer/ContentContainer/ThinkContainer"]
+unique_name_in_owner = true
+visible = false
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_q4qcv")
 
-[node name="ThinkContent" type="RichTextLabel" parent="VBoxContainer/ContentContainer/ThinkContainer/PanelContainer"]
+[node name="ThinkContent" type="RichTextLabel" parent="VBoxContainer/ContentContainer/ThinkContainer/ThinkContentPanel"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2

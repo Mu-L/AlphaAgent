@@ -1,16 +1,16 @@
 @tool
-class_name OpenAIChat
+class_name DeepSeekChat
 extends Node
 
-## 通用的OpenAI规范非流式聊天客户端
+## DeepSeek 非流式聊天客户端
 
 ## API基础URL
-@export var api_base: String = "https://api.openai.com"
+@export var api_base: String = "https://api.deepseek.com"
 ## API密钥
 @export var secret_key: String = ''
 ## 模型名称
-@export var model_name: String = "gpt-3.5-turbo"
-## 是否使用深度思考（DeepSeek专用）
+@export var model_name: String = "deepseek-chat"
+## 是否使用深度思考
 @export var use_thinking: bool = false
 ## 温度值，越高输出越随机，默认为1
 @export_range(0.0, 2.0, 0.1) var temperature: float = 1.0
@@ -22,8 +22,6 @@ extends Node
 @export var max_tokens: int = 8192
 ## 输出内容的类型
 @export_enum("text", "json_object") var response_format: String = "text"
-## 提供商类型
-@export var provider: String = "openai"
 
 ## 生成结束信号
 signal generate_finish(msg: String, think_msg: String)
@@ -50,13 +48,9 @@ func post_message(messages: Array[Dictionary]):
 	]
 
 	# 准备请求体
-	var model = model_name
-	if provider == "deepseek" and use_thinking:
-		model = "deepseek-reasoner"
-	
 	var request_data = {
 		"messages": messages,
-		"model": model,
+		"model": model_name,
 		"frequency_penalty": frequency_penalty,
 		"max_tokens": max_tokens,
 		"presence_penalty": presence_penalty,
@@ -69,12 +63,9 @@ func post_message(messages: Array[Dictionary]):
 		"tools": null,
 		"tool_choice": "none",
 	}
-	
-	# 注意：enable_thinking 参数并非所有提供商都支持
-	# 豆包等提供商的推理模型会自动返回 reasoning_content，无需额外参数
-	
+
 	var request_body = JSON.stringify(request_data)
-	
+
 	if not http_request.request_completed.is_connected(_http_request_completed):
 		http_request.request_completed.connect(_http_request_completed)
 
@@ -83,21 +74,19 @@ func post_message(messages: Array[Dictionary]):
 	# 移除末尾的斜杠
 	if url.ends_with("/"):
 		url = url.substr(0, url.length() - 1)
-	
+
 	# 检查是否已经包含完整路径
 	if url.ends_with("/chat/completions"):
-		# 已经是完整路径，不需要添加
 		pass
 	elif url.ends_with("/v3"):
-		# 豆包等使用 v3，只添加 /chat/completions
+		url += "/chat/completions"
+	elif url.ends_with("/v2"):
 		url += "/chat/completions"
 	elif url.ends_with("/v1"):
-		# 标准 OpenAI，只添加 /chat/completions
 		url += "/chat/completions"
 	else:
-		# 默认添加完整的 /v1/chat/completions
 		url += "/v1/chat/completions"
-	
+
 	# 发送POST请求
 	var err = http_request.request(url, headers, HTTPClient.METHOD_POST, request_body)
 	generatting = true
@@ -120,11 +109,9 @@ func _http_request_completed(_result, _response_code, _headers, body: PackedByte
 		if choices.size() > 0:
 			var message_data = choices[0].get("message", {})
 			var content = message_data.get("content", "")
-			# 支持 reasoning_content（如 SiliconFlow 等提供商）
 			var think_msg = message_data.get("reasoning_content", "")
 			generate_finish.emit(content, think_msg)
 	else:
-		# 检查是否是错误响应
 		if data.has("error"):
 			var error_info = data["error"]
 			var error_msg = "API错误"

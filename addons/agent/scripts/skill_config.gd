@@ -9,7 +9,7 @@ class SkillManager:
 	var skill_directory: String = ""
 	var skills: Array[AgentSkillResource] = []
 	var skill_map: Dictionary = {}
-	var skill_file_path_map: Dictionary = {}
+	var skill_folder_path_map: Dictionary = {}
 
 	func _init(p_skill_directory: String):
 		skill_directory = p_skill_directory
@@ -23,27 +23,40 @@ class SkillManager:
 			create_default_skills()
 
 	func create_default_skills():
-		var default_skills_dir = DirAccess.open(DEFAULT_SKILLS_DIR)
-		if default_skills_dir:
-			for file_name in default_skills_dir.get_files():
-				DirAccess.copy_absolute(DEFAULT_SKILLS_DIR + file_name, skill_directory + file_name)
+		var default_dir = DirAccess.open(DEFAULT_SKILLS_DIR)
+		if default_dir:
+			for dir_name in default_dir.get_directories():
+				_copy_skill_folder(DEFAULT_SKILLS_DIR + dir_name + "/", skill_directory + dir_name + "/")
+
+	func _copy_skill_folder(from: String, to: String) -> void:
+		DirAccess.make_dir_recursive_absolute(to)
+		var source_dir = DirAccess.open(from)
+		if source_dir:
+			# 复制所有文件
+			for file_name in source_dir.get_files():
+				DirAccess.copy_absolute(from + file_name, to + file_name)
+			# 递归复制子目录
+			for dir_name in source_dir.get_directories():
+				_copy_skill_folder(from + dir_name + "/", to + dir_name + "/")
 
 	func load_skills():
 		skills.clear()
 		skill_map.clear()
-		skill_file_path_map.clear()
-		var files = DirAccess.get_files_at(skill_directory)
-		for file_name in files:
-			if not (file_name.ends_with(".tres") or file_name.ends_with(".res")):
-				continue
-			var file_path = skill_directory + file_name
-			var skill = load(file_path) as AgentSkillResource
-			if skill == null:
-				AlphaAgentPlugin.print_alpha_message("跳过无效技能资源: {0}".format([file_path]))
+		skill_folder_path_map.clear()
+
+		var dir = DirAccess.open(skill_directory)
+		if dir == null:
+			return
+
+		for dir_name in dir.get_directories():
+			var folder_path = skill_directory + dir_name + "/"
+			var skill = AgentSkillResource.load_from_folder(folder_path)
+			if skill.skill_name.is_empty():
+				AlphaAgentPlugin.print_alpha_message("跳过无效技能文件夹: {0}".format([folder_path]))
 				continue
 			skills.append(skill)
 			skill_map[skill.skill_name] = skill
-			skill_file_path_map[file_path] = skill
+			skill_folder_path_map[skill.skill_name] = folder_path
 
 		AlphaAgentPlugin.print_alpha_message("{0}个技能加载完成".format([skills.size()]))
 
@@ -53,30 +66,39 @@ class SkillManager:
 	func get_skill_names() -> Array:
 		return skill_map.keys()
 
-	func get_skill_file_path(skill: AgentSkillResource) -> String:
-		for file_path in skill_file_path_map.keys():
-			if skill_file_path_map[file_path] == skill:
-				return file_path
-		return ""
+	func get_skill_folder_path(skill_name: String) -> String:
+		return skill_folder_path_map.get(skill_name, "")
 
 	func add_skill(skill: AgentSkillResource):
-		var path = skill_directory + skill.skill_name + ".tres"
-		ResourceSaver.save(skill, path)
-		skill_file_path_map[path] = skill
-		skills.append(skill)
+		var folder_path = skill_directory + skill.skill_name + "/"
+		DirAccess.make_dir_recursive_absolute(folder_path)
+		skill.skill_folder_path = folder_path
+		skill.save_to_folder()
+
 		skill_map[skill.skill_name] = skill
-		skill_file_path_map[path] = skill
+		skill_folder_path_map[skill.skill_name] = folder_path
+		skills.append(skill)
 
 	func update_skill(skill: AgentSkillResource):
-		var old_skill = get_skill(skill.skill_name)
-		old_skill.skill_description = skill.skill_description
-		old_skill.skill_content = skill.skill_content
-
+		if not skill.skill_folder_path.is_empty():
+			skill.save_to_folder()
 		skill_map[skill.skill_name] = skill
-		ResourceSaver.save(skill, get_skill_file_path(old_skill))
 
 	func delete_skill(skill: AgentSkillResource):
+		var folder_path = skill_folder_path_map.get(skill.skill_name, "")
+		if not folder_path.is_empty():
+			_delete_folder_recursive(folder_path)
+
 		skills.erase(skill)
 		skill_map.erase(skill.skill_name)
-		DirAccess.remove_absolute(get_skill_file_path(skill))
-		skill_file_path_map.erase(get_skill_file_path(skill))
+		skill_folder_path_map.erase(skill.skill_name)
+
+	func _delete_folder_recursive(path: String) -> void:
+		var dir = DirAccess.open(path)
+		if dir:
+			for item in dir.get_files():
+				DirAccess.remove_absolute(path + "/" + item)
+			for item in dir.get_directories():
+				_delete_folder_recursive(path + "/" + item)
+			# 删除自身文件夹
+			DirAccess.remove_absolute(path)

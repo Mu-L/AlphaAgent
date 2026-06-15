@@ -21,6 +21,7 @@ enum ToolGroup {
 	EDITOR, # 编辑器操作
 	COMMAND, # 命令行操作
 	DEBUG, # 调试操作
+	PROJECT, # 项目配置操作
 }
 
 const TOOL_GROUP_NAMES = {
@@ -30,6 +31,7 @@ const TOOL_GROUP_NAMES = {
 	ToolGroup.EDITOR: "编辑器操作",
 	ToolGroup.COMMAND: "命令行操作",
 	ToolGroup.DEBUG: "调试操作",
+	ToolGroup.PROJECT: "项目配置操作",
 }
 
 

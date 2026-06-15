@@ -18,13 +18,6 @@ func _ready() -> void:
 	reset_supplier_button.pressed.connect(on_reset_supplier)
 
 func init_models_supplier():
-	# 等待 model_manager 初始化完成
-	var max_wait_frames = 10
-	var wait_count = 0
-	while AlphaAgentPlugin.global_setting.model_manager == null and wait_count < max_wait_frames:
-		await get_tree().process_frame
-		wait_count += 1
-
 	var model_manager = AlphaAgentPlugin.global_setting.model_manager
 	if model_manager == null:
 		return

@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://bxe6hto0vk8fu"]
+[gd_scene load_steps=9 format=3 uid="uid://bxe6hto0vk8fu"]
 
 [ext_resource type="Script" uid="uid://dry1n6m67ku3q" path="res://addons/agent/ui/setting/setting.gd" id="1_c2l6f"]
 [ext_resource type="PackedScene" uid="uid://c2ei06dd8phsw" path="res://addons/agent/ui/setting/setting_item_bool.tscn" id="1_ca3bj"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://jbwyo7x0ce47" path="res://addons/agent/ui/setting/setting_item_option.tscn" id="4_83qt4"]
 [ext_resource type="PackedScene" uid="uid://wicqyhlygh1v" path="res://addons/agent/ui/models/supplier_option_window.tscn" id="4_k4cyc"]
 [ext_resource type="PackedScene" uid="uid://bldax4sbp20q2" path="res://addons/agent/ui/setting/setting_item_string.tscn" id="5_3klaf"]
+[ext_resource type="PackedScene" uid="uid://dma1q8o2by3nq" path="res://addons/agent/ui/role/role_option_window.tscn" id="6_role_win"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_c2l6f"]
 
@@ -65,7 +66,6 @@ text = "输入框发送快捷键"
 
 [node name="OptionButton" parent="SettingPanel/SettingItemsContainer/SendShotCut" index="1"]
 tooltip_text = "选择发送快捷键"
-selected = 1
 item_count = 3
 popup/item_0/text = "不使用快捷键"
 popup/item_1/text = "Enter"
@@ -139,15 +139,18 @@ text = "角色管理"
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="AddRoleButton" type="Button" parent="SettingPanel/SettingItemsContainer/RoleList"]
+[node name="ManageRoleButton" type="Button" parent="SettingPanel/SettingItemsContainer/RoleList"]
 unique_name_in_owner = true
 layout_mode = 2
-tooltip_text = "添加新的角色"
+tooltip_text = "管理角色配置"
 mouse_default_cursor_shape = 2
 theme_type_variation = &"PrimaryButton"
-text = "添加角色"
+text = "管理角色"
 
 [node name="SupplierOptionWindow" parent="." instance=ExtResource("4_k4cyc")]
+visible = false
+
+[node name="RoleOptionWindow" parent="." instance=ExtResource("6_role_win")]
 visible = false
 
 [editable path="SettingPanel/SettingItemsContainer/SendShotCut"]
